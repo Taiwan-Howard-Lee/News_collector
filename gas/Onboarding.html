@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <title>Welcome! Tell Us About Yourself</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <?!= include('Stylesheet'); ?>
+    <style>
+      .onboarding-container {
+        max-width: 600px;
+        margin: 0 auto;
+        padding: var(--spacing-xl);
+      }
+
+      .onboarding-header {
+        text-align: center;
+        margin-bottom: var(--spacing-2xl);
+      }
+
+      .onboarding-header h1 {
+        color: var(--text-primary);
+        font-size: var(--font-size-3xl);
+        font-weight: 700;
+        margin-bottom: var(--spacing-sm);
+        background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+
+      .onboarding-header p {
+        color: var(--text-secondary);
+        font-size: var(--font-size-lg);
+        line-height: 1.6;
+      }
+
+      .profile-form {
+        background: var(--surface-color);
+        padding: var(--spacing-2xl);
+        border-radius: var(--radius-lg);
+        box-shadow: 0 4px 16px var(--shadow-light);
+      }
+
+      .form-group {
+        margin-bottom: var(--spacing-xl);
+      }
+
+      .form-group label {
+        display: block;
+        margin-bottom: var(--spacing-sm);
+        font-weight: 600;
+        color: var(--text-primary);
+        font-size: var(--font-size-lg);
+      }
+
+      .form-group textarea {
+        width: 100%;
+        padding: var(--spacing-md);
+        border: 2px solid var(--border-color);
+        border-radius: var(--radius-md);
+        font-size: var(--font-size-base);
+        font-family: inherit;
+        background: var(--surface-color);
+        color: var(--text-primary);
+        resize: vertical;
+        min-height: 100px;
+        transition: border-color var(--transition-fast);
+      }
+
+      .form-group textarea:focus {
+        outline: none;
+        border-color: var(--primary-color);
+      }
+
+      .form-group .hint {
+        font-size: var(--font-size-sm);
+        color: var(--text-tertiary);
+        margin-top: var(--spacing-xs);
+        font-style: italic;
+      }
+
+      .submit-btn {
+        background: var(--primary-color);
+        color: white;
+        border: none;
+        padding: var(--spacing-md) var(--spacing-xl);
+        border-radius: var(--radius-md);
+        font-size: var(--font-size-lg);
+        font-weight: 600;
+        cursor: pointer;
+        width: 100%;
+        transition: background-color var(--transition-fast);
+      }
+
+      .submit-btn:hover {
+        background: var(--primary-hover);
+      }
+
+      .submit-btn:disabled {
+        background: var(--text-tertiary);
+        cursor: not-allowed;
+      }
+
+      .loading {
+        display: none;
+        text-align: center;
+        margin-top: var(--spacing-md);
+      }
+
+      .loading .spinner {
+        width: 20px;
+        height: 20px;
+        border: 2px solid var(--border-color);
+        border-top: 2px solid var(--primary-color);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        display: inline-block;
+        margin-right: var(--spacing-sm);
+      }
+
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+
+      .error-message {
+        background: var(--error-color);
+        color: white;
+        padding: var(--spacing-md);
+        border-radius: var(--radius-md);
+        margin-bottom: var(--spacing-lg);
+        display: none;
+      }
+
+      @media (max-width: 768px) {
+        .onboarding-container {
+          padding: var(--spacing-lg);
+        }
+        
+        .profile-form {
+          padding: var(--spacing-lg);
+        }
+        
+        .onboarding-header h1 {
+          font-size: var(--font-size-2xl);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="onboarding-container">
+      <div class="onboarding-header">
+        <h1>Welcome to Your AI News Companion</h1>
+        <p>Let's personalize your news experience! Answer these questions to help me understand your interests and create a tailored AI companion just for you.</p>
+      </div>
+      
+      <form id="profile-form" class="profile-form">
+        <div class="error-message" id="error-message"></div>
+        
+        <div class="form-group">
+          <label for="q1">What are your long-term professional and personal goals?</label>
+          <textarea id="q1" name="q1" rows="4" required placeholder="e.g., I want to advance in my tech career, stay informed about AI developments, and build a strong professional network..."></textarea>
+          <div class="hint">This helps me prioritize articles that align with your aspirations.</div>
+        </div>
+
+        <div class="form-group">
+          <label for="q2">What topics, industries, or subjects are you most passionate about?</label>
+          <textarea id="q2" name="q2" rows="4" required placeholder="e.g., artificial intelligence, sustainable technology, Singapore's startup ecosystem, digital transformation..."></textarea>
+          <div class="hint">I'll use this to highlight articles that match your interests.</div>
+        </div>
+
+        <div class="form-group">
+          <label for="q3">What types of news do you usually avoid and why?</label>
+          <textarea id="q3" name="q3" rows="4" required placeholder="e.g., celebrity gossip, overly technical jargon without context, sensationalist headlines..."></textarea>
+          <div class="hint">This helps me filter out content that doesn't serve your needs.</div>
+        </div>
+
+        <div class="form-group">
+          <label for="q4">Describe your ideal AI news companion. What personality and approach would work best for you?</label>
+          <textarea id="q4" name="q4" rows="4" required placeholder="e.g., I'd like a knowledgeable mentor who explains complex topics simply, or a friendly analyst who helps me understand the bigger picture..."></textarea>
+          <div class="hint">This shapes how I'll interact with you in our discussions.</div>
+        </div>
+
+        <button type="submit" class="submit-btn" id="submit-btn">
+          <span class="btn-text">Create My Personalized Experience</span>
+          <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <span>Setting up your profile...</span>
+          </div>
+        </button>
+      </form>
+    </div>
+
+    <script>
+      document.getElementById('profile-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const submitBtn = document.getElementById('submit-btn');
+        const btnText = submitBtn.querySelector('.btn-text');
+        const loading = document.getElementById('loading');
+        const errorMessage = document.getElementById('error-message');
+        
+        // Hide any previous error
+        errorMessage.style.display = 'none';
+        
+        // Show loading state
+        submitBtn.disabled = true;
+        btnText.style.display = 'none';
+        loading.style.display = 'block';
+        
+        const profileData = {
+          q1: document.getElementById('q1').value.trim(),
+          q2: document.getElementById('q2').value.trim(),
+          q3: document.getElementById('q3').value.trim(),
+          q4: document.getElementById('q4').value.trim()
+        };
+
+        // Validate that all fields are filled
+        const requiredFields = ['q1', 'q2', 'q3', 'q4'];
+        const emptyFields = requiredFields.filter(field => !profileData[field]);
+        
+        if (emptyFields.length > 0) {
+          showError('Please fill in all fields to continue.');
+          resetButton();
+          return;
+        }
+
+        google.script.run
+          .withSuccessHandler(function(result) {
+            if (result.status === 'success') {
+              // Show success message before redirecting
+              btnText.textContent = 'Profile Created Successfully!';
+              btnText.style.display = 'block';
+              loading.style.display = 'none';
+              submitBtn.style.background = 'var(--success-color)';
+              
+              // Redirect after a short delay
+              setTimeout(function() {
+                window.top.location.href = "<?= ScriptApp.getService().getUrl(); ?>";
+              }, 1500);
+            } else {
+              showError(result.message || 'An error occurred while saving your profile.');
+              resetButton();
+            }
+          })
+          .withFailureHandler(function(error) {
+            showError('Error saving profile: ' + (error.message || 'Unknown error'));
+            resetButton();
+          })
+          .saveUserProfile(profileData);
+      });
+
+      function showError(message) {
+        const errorMessage = document.getElementById('error-message');
+        errorMessage.textContent = message;
+        errorMessage.style.display = 'block';
+        errorMessage.scrollIntoView({ behavior: 'smooth' });
+      }
+
+      function resetButton() {
+        const submitBtn = document.getElementById('submit-btn');
+        const btnText = submitBtn.querySelector('.btn-text');
+        const loading = document.getElementById('loading');
+        
+        submitBtn.disabled = false;
+        btnText.style.display = 'block';
+        loading.style.display = 'none';
+        submitBtn.style.background = 'var(--primary-color)';
+      }
+
+      // Add some interactivity to textareas
+      document.querySelectorAll('textarea').forEach(textarea => {
+        textarea.addEventListener('input', function() {
+          if (this.value.trim()) {
+            this.style.borderColor = 'var(--success-color)';
+          } else {
+            this.style.borderColor = 'var(--border-color)';
+          }
+        });
+      });
+    </script>
+  </body>
+</html>

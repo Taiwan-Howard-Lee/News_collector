@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <base target="_top">
+    <title>Singapore News Intelligence Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="AI-powered Singapore news dashboard with personalized insights">
+    <meta name="theme-color" content="#4285F4">
+    <?!= include('Stylesheet'); ?>
+  </head>
+  <body data-theme="light">
+    <div class="container">
+      <header>
+        <div class="header-content">
+          <div class="header-left">
+            <h1>Singapore News Intelligence Dashboard</h1>
+            <p>Your personalized AI-powered news companion</p>
+          </div>
+          <div class="header-right">
+            <div class="user-stats">
+              <div class="points-display">
+                <i class="fas fa-star" aria-hidden="true"></i>
+                <span id="user-points">0</span> points
+              </div>
+              <button class="insights-btn" id="insights-btn" title="View Saved Insights">
+                <i class="fas fa-bookmark" aria-hidden="true"></i>
+                Insights
+              </button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- Controls Section -->
+      <section class="controls" role="toolbar" aria-label="News controls">
+        <div class="controls-left">
+          <div class="search-box">
+            <i class="fas fa-search search-icon" aria-hidden="true"></i>
+            <input
+              type="text"
+              class="search-input"
+              placeholder="Search articles..."
+              id="search-input"
+              aria-label="Search articles"
+            >
+          </div>
+
+          <select class="filter-select" id="source-filter" aria-label="Filter by source">
+            <option value="">All Sources</option>
+          </select>
+
+          <select class="filter-select" id="date-filter" aria-label="Filter by date">
+            <option value="">All Dates</option>
+            <option value="today">Today</option>
+            <option value="yesterday">Yesterday</option>
+            <option value="week">This Week</option>
+            <option value="month">This Month</option>
+          </select>
+
+          <select class="filter-select" id="sort-filter" aria-label="Sort articles">
+            <option value="relevance">Sort by Relevance</option>
+            <option value="date-desc">Newest First</option>
+            <option value="date-asc">Oldest First</option>
+            <option value="source">By Source</option>
+          </select>
+        </div>
+
+        <div class="controls-right">
+          <button
+            class="theme-toggle"
+            id="theme-toggle"
+            aria-label="Toggle dark mode"
+            title="Toggle dark/light theme"
+          >
+            <i class="fas fa-moon" aria-hidden="true"></i>
+          </button>
+        </div>
+      </section>
+
+      <!-- Main Content Area -->
+      <div class="main-content">
+        <!-- News Container -->
+        <main id="news-container" role="main" aria-label="News articles">
+          <!-- Loading state -->
+          <div class="loader" id="loader" aria-label="Loading articles">
+            <div class="spinner"></div>
+          </div>
+        </main>
+
+        <!-- AI Chat Sidebar -->
+        <aside class="chat-sidebar" id="chat-sidebar">
+          <div class="chat-header">
+            <h3>AI News Companion</h3>
+            <button class="chat-close" id="chat-close" aria-label="Close chat">
+              <i class="fas fa-times" aria-hidden="true"></i>
+            </button>
+          </div>
+          
+          <div class="chat-messages" id="chat-messages">
+            <div class="chat-message ai-message">
+              <div class="message-content">
+                <p>Hello! I'm your AI news companion. I'm here to help you understand the articles and discuss their relevance to your goals. What would you like to talk about?</p>
+              </div>
+            </div>
+          </div>
+          
+          <div class="chat-input-container">
+            <div class="chat-input-wrapper">
+              <input
+                type="text"
+                id="chat-input"
+                placeholder="Ask me about any article..."
+                aria-label="Chat message"
+              >
+              <button id="chat-send" aria-label="Send message">
+                <i class="fas fa-paper-plane" aria-hidden="true"></i>
+              </button>
+            </div>
+          </div>
+        </aside>
+      </div>
+
+      <!-- Empty State (hidden by default) -->
+      <div class="empty-state" id="empty-state" style="display: none;" role="status">
+        <div class="empty-state-icon">
+          <i class="fas fa-newspaper" aria-hidden="true"></i>
+        </div>
+        <h3>No articles found</h3>
+        <p>Try adjusting your search or filter criteria to find more articles.</p>
+      </div>
+
+      <!-- Error State (hidden by default) -->
+      <div class="error-state" id="error-state" style="display: none;" role="alert">
+        <div class="error-state-icon">
+          <i class="fas fa-exclamation-triangle" aria-hidden="true"></i>
+        </div>
+        <h3>Unable to load articles</h3>
+        <p id="error-message">Please try refreshing the page or contact support if the problem persists.</p>
+      </div>
+
+      <!-- Saved Insights Modal -->
+      <div class="modal" id="insights-modal" style="display: none;">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h3>Your Saved Insights</h3>
+            <button class="modal-close" id="insights-modal-close" aria-label="Close modal">
+              <i class="fas fa-times" aria-hidden="true"></i>
+            </button>
+          </div>
+          <div class="modal-body" id="insights-list">
+            <!-- Insights will be loaded here -->
+          </div>
+        </div>
+      </div>
+
+      <footer>
+        <p>Powered by Google Apps Script & Gemini AI • <span id="last-updated"></span></p>
+      </footer>
+    </div>
+
+    <?!= include('JavaScript'); ?>
+  </body>
+</html>

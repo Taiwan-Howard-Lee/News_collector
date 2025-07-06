@@ -1,0 +1,632 @@
+<script>
+  // Global variables
+  let currentArticles = [];
+  let currentUserPoints = 0;
+  let chatSidebarOpen = false;
+  let currentArticleContext = null;
+
+  /**
+   * Runs when the window is loaded. 
+   * Kicks off the process to fetch and display news data.
+   */
+  window.addEventListener('load', function() {
+    fetchNews();
+    setupEventListeners();
+    updateLastUpdated();
+  });
+
+  /**
+   * Sets up all event listeners for the application.
+   */
+  function setupEventListeners() {
+    // Theme toggle
+    document.getElementById('theme-toggle').addEventListener('click', toggleTheme);
+    
+    // Search functionality
+    document.getElementById('search-input').addEventListener('input', handleSearch);
+    
+    // Filter functionality
+    document.getElementById('source-filter').addEventListener('change', handleFilter);
+    document.getElementById('date-filter').addEventListener('change', handleFilter);
+    document.getElementById('sort-filter').addEventListener('change', handleSort);
+    
+    // Chat functionality
+    document.getElementById('chat-send').addEventListener('click', sendChatMessage);
+    document.getElementById('chat-input').addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        sendChatMessage();
+      }
+    });
+    
+    // Chat sidebar toggle
+    document.addEventListener('click', function(e) {
+      if (e.target.classList.contains('chat-toggle')) {
+        toggleChatSidebar();
+      }
+    });
+    
+    // Close chat sidebar
+    document.getElementById('chat-close').addEventListener('click', toggleChatSidebar);
+    
+    // Insights modal
+    document.getElementById('insights-btn').addEventListener('click', showInsightsModal);
+    document.getElementById('insights-modal-close').addEventListener('click', hideInsightsModal);
+    
+    // Close modal when clicking outside
+    document.getElementById('insights-modal').addEventListener('click', function(e) {
+      if (e.target === this) {
+        hideInsightsModal();
+      }
+    });
+  }
+
+  /**
+   * Calls the server-side Google Apps Script function to get news data.
+   */
+  function fetchNews() {
+    google.script.run
+      .withSuccessHandler(displayNews)
+      .withFailureHandler(displayError)
+      .getNewsData();
+  }
+
+  /**
+   * Callback function that runs on successful data retrieval.
+   * It builds and displays the news cards on the page.
+   * @param {Array<Object>} articles - The news articles from the Google Sheet.
+   */
+  function displayNews(articles) {
+    const container = document.getElementById('news-container');
+    
+    // Clear the loading spinner
+    container.innerHTML = '';
+
+    if (articles.error) {
+      displayError({ message: articles.error });
+      return;
+    }
+
+    if (!articles || articles.length === 0) {
+      showEmptyState();
+      return;
+    }
+
+    // Store articles globally
+    currentArticles = articles;
+    
+    // Update user points if available
+    if (articles.length > 0 && articles[0].user_points !== undefined) {
+      currentUserPoints = articles[0].user_points;
+      updateUserPoints();
+    }
+
+    // Populate source filter
+    populateSourceFilter(articles);
+
+    let cardsHtml = '';
+    articles.forEach(article => {
+      cardsHtml += createCard(article);
+    });
+
+    container.innerHTML = cardsHtml;
+    
+    // Add event listeners to new cards
+    addCardEventListeners();
+  }
+
+  /**
+   * Creates the HTML for a single news card with AI features.
+   * @param {Object} article - A single news article object.
+   * @returns {string} The HTML string for the card.
+   */
+  function createCard(article) {
+    const discoveredDate = new Date(article.discovered_at).toLocaleDateString();
+    const relevanceScore = article.relevance_score || 0;
+    const aiSnippet = article.ai_snippet || '';
+    
+    // Create relevance badge
+    const relevanceBadge = relevanceScore > 0 ? 
+      `<div class="card-relevance">${relevanceScore}% relevant</div>` : '';
+
+    // Create AI snippet if available
+    const aiSnippetHtml = aiSnippet ? 
+      `<div class="card-ai-snippet">${aiSnippet}</div>` : '';
+
+    return `
+      <div class="card" data-article-id="${article.article_id || ''}" data-article-title="${article.title}">
+        ${relevanceBadge}
+        <div class="card-content">
+          <h2><a href="${article.url}" target="_blank" class="article-link">${article.title}</a></h2>
+          <p class="card-summary">${article.summary || 'No summary available.'}</p>
+          ${aiSnippetHtml}
+          <div class="card-actions">
+            <button class="card-action-btn chat-toggle" title="Discuss with AI">
+              <i class="fas fa-comments" aria-hidden="true"></i>
+              Discuss
+            </button>
+            <button class="card-action-btn relevance-btn" title="Why is this relevant?">
+              <i class="fas fa-question-circle" aria-hidden="true"></i>
+              Why Relevant?
+            </button>
+            <button class="card-action-btn save-btn" title="Save for later">
+              <i class="fas fa-bookmark" aria-hidden="true"></i>
+              Save
+            </button>
+          </div>
+        </div>
+        <div class="card-footer">
+          <div class="card-meta">
+            <span class="card-source">${article.source}</span>
+            <span class="card-date">${discoveredDate}</span>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  /**
+   * Adds event listeners to card elements.
+   */
+  function addCardEventListeners() {
+    // Article read tracking
+    document.querySelectorAll('.article-link').forEach(link => {
+      link.addEventListener('click', function() {
+        const card = this.closest('.card');
+        const articleId = card.dataset.articleId;
+        recordArticleRead(articleId);
+      });
+    });
+
+    // Chat toggle
+    document.querySelectorAll('.chat-toggle').forEach(btn => {
+      btn.addEventListener('click', function() {
+        const card = this.closest('.card');
+        const articleTitle = card.dataset.articleTitle;
+        openChatWithArticle(articleTitle);
+      });
+    });
+
+    // Relevance explanation
+    document.querySelectorAll('.relevance-btn').forEach(btn => {
+      btn.addEventListener('click', function() {
+        const card = this.closest('.card');
+        const articleTitle = card.dataset.articleTitle;
+        showRelevanceExplanation(articleTitle);
+      });
+    });
+
+    // Save article
+    document.querySelectorAll('.save-btn').forEach(btn => {
+      btn.addEventListener('click', function() {
+        const card = this.closest('.card');
+        const articleId = card.dataset.articleId;
+        const articleTitle = card.dataset.articleTitle;
+        saveArticle(articleId, articleTitle);
+      });
+    });
+  }
+
+  /**
+   * Records when a user reads an article and awards points.
+   * @param {string} articleId - The article ID.
+   */
+  function recordArticleRead(articleId) {
+    google.script.run
+      .withSuccessHandler(function(result) {
+        if (result.status === 'success') {
+          currentUserPoints = result.total_points;
+          updateUserPoints();
+          showPointsNotification(result.points_awarded, 'Article Read');
+        }
+      })
+      .recordArticleRead(articleId);
+  }
+
+  /**
+   * Opens the chat sidebar with article context.
+   * @param {string} articleTitle - The article title for context.
+   */
+  function openChatWithArticle(articleTitle) {
+    currentArticleContext = articleTitle;
+    toggleChatSidebar();
+    
+    // Add context message
+    addChatMessage('user', `I'd like to discuss this article: "${articleTitle}"`);
+    
+    // Generate AI response
+    handleAIChat(`I'd like to discuss this article: "${articleTitle}"`, { title: articleTitle });
+  }
+
+  /**
+   * Shows relevance explanation for an article.
+   * @param {string} articleTitle - The article title.
+   */
+  function showRelevanceExplanation(articleTitle) {
+    const message = `Why is "${articleTitle}" relevant to me?`;
+    addChatMessage('user', message);
+    handleAIChat(message, { title: articleTitle });
+    toggleChatSidebar();
+  }
+
+  /**
+   * Saves an article for later reference.
+   * @param {string} articleId - The article ID.
+   * @param {string} articleTitle - The article title.
+   */
+  function saveArticle(articleId, articleTitle) {
+    const insightData = {
+      article_id: articleId,
+      message: `Saved article: ${articleTitle}`,
+      rating: 5,
+      comment: 'Saved for later reading'
+    };
+
+    google.script.run
+      .withSuccessHandler(function(result) {
+        if (result.status === 'success') {
+          currentUserPoints = result.total_points;
+          updateUserPoints();
+          showPointsNotification(result.points_awarded, 'Article Saved');
+          showNotification('Article saved to your insights!', 'success');
+        }
+      })
+      .saveInsight(insightData);
+  }
+
+  /**
+   * Handles AI chat interactions.
+   * @param {string} message - User's message.
+   * @param {Object} article - Article context.
+   */
+  function handleAIChat(message, article) {
+    const chatData = {
+      message: message,
+      article: article
+    };
+
+    google.script.run
+      .withSuccessHandler(function(result) {
+        if (result.error) {
+          addChatMessage('error', 'Sorry, I encountered an error. Please try again.');
+        } else {
+          addChatMessage('ai', result.response);
+          if (result.points_awarded) {
+            currentUserPoints = result.total_points;
+            updateUserPoints();
+            showPointsNotification(result.points_awarded, 'AI Discussion');
+          }
+        }
+      })
+      .withFailureHandler(function(error) {
+        addChatMessage('error', 'Sorry, I encountered an error. Please try again.');
+      })
+      .handleAIChat(chatData);
+  }
+
+  /**
+   * Sends a chat message from the input field.
+   */
+  function sendChatMessage() {
+    const input = document.getElementById('chat-input');
+    const message = input.value.trim();
+    
+    if (message) {
+      addChatMessage('user', message);
+      handleAIChat(message, currentArticleContext ? { title: currentArticleContext } : null);
+      input.value = '';
+    }
+  }
+
+  /**
+   * Adds a message to the chat interface.
+   * @param {string} type - Message type ('user', 'ai', 'error').
+   * @param {string} content - Message content.
+   */
+  function addChatMessage(type, content) {
+    const messagesContainer = document.getElementById('chat-messages');
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `chat-message ${type}-message`;
+    
+    messageDiv.innerHTML = `
+      <div class="message-content">
+        <p>${content}</p>
+      </div>
+    `;
+    
+    messagesContainer.appendChild(messageDiv);
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+  }
+
+  /**
+   * Toggles the chat sidebar visibility.
+   */
+  function toggleChatSidebar() {
+    const sidebar = document.getElementById('chat-sidebar');
+    chatSidebarOpen = !chatSidebarOpen;
+    
+    if (chatSidebarOpen) {
+      sidebar.classList.add('open');
+    } else {
+      sidebar.classList.remove('open');
+    }
+  }
+
+  /**
+   * Shows the saved insights modal.
+   */
+  function showInsightsModal() {
+    google.script.run
+      .withSuccessHandler(function(insights) {
+        const modal = document.getElementById('insights-modal');
+        const list = document.getElementById('insights-list');
+        
+        if (insights.error) {
+          list.innerHTML = '<p class="error">Error loading insights: ' + insights.error + '</p>';
+        } else if (!insights || insights.length === 0) {
+          list.innerHTML = '<p class="empty">No saved insights yet. Start discussing articles to save insights!</p>';
+        } else {
+          let insightsHtml = '';
+          insights.forEach(insight => {
+            const date = new Date(insight.timestamp).toLocaleDateString();
+            insightsHtml += `
+              <div class="insight-item">
+                <div class="insight-content">
+                  <p class="insight-message">${insight.saved_message}</p>
+                  <div class="insight-meta">
+                    <span class="insight-date">${date}</span>
+                    <span class="insight-rating">${'★'.repeat(insight['user_rating (1-5)'])}</span>
+                  </div>
+                  ${insight.user_comment ? `<p class="insight-comment">${insight.user_comment}</p>` : ''}
+                </div>
+              </div>
+            `;
+          });
+          list.innerHTML = insightsHtml;
+        }
+        
+        modal.style.display = 'block';
+      })
+      .getSavedInsights();
+  }
+
+  /**
+   * Hides the saved insights modal.
+   */
+  function hideInsightsModal() {
+    document.getElementById('insights-modal').style.display = 'none';
+  }
+
+  /**
+   * Updates the user points display.
+   */
+  function updateUserPoints() {
+    const pointsElement = document.getElementById('user-points');
+    pointsElement.textContent = currentUserPoints;
+  }
+
+  /**
+   * Shows a points notification.
+   * @param {number} points - Points awarded.
+   * @param {string} reason - Reason for points.
+   */
+  function showPointsNotification(points, reason) {
+    const notification = document.createElement('div');
+    notification.className = 'points-notification';
+    notification.innerHTML = `
+      <i class="fas fa-star" aria-hidden="true"></i>
+      +${points} points for ${reason}
+    `;
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+      notification.remove();
+    }, 3000);
+  }
+
+  /**
+   * Shows a general notification.
+   * @param {string} message - Notification message.
+   * @param {string} type - Notification type ('success', 'error', 'info').
+   */
+  function showNotification(message, type = 'info') {
+    const notification = document.createElement('div');
+    notification.className = `notification ${type}`;
+    notification.textContent = message;
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+      notification.remove();
+    }, 3000);
+  }
+
+  /**
+   * Populates the source filter dropdown.
+   * @param {Array<Object>} articles - Array of articles.
+   */
+  function populateSourceFilter(articles) {
+    const sources = [...new Set(articles.map(article => article.source))];
+    const filter = document.getElementById('source-filter');
+    
+    // Clear existing options except "All Sources"
+    filter.innerHTML = '<option value="">All Sources</option>';
+    
+    sources.forEach(source => {
+      const option = document.createElement('option');
+      option.value = source;
+      option.textContent = source;
+      filter.appendChild(option);
+    });
+  }
+
+  /**
+   * Handles search functionality.
+   */
+  function handleSearch() {
+    const searchTerm = document.getElementById('search-input').value.toLowerCase();
+    filterArticles();
+  }
+
+  /**
+   * Handles filter changes.
+   */
+  function handleFilter() {
+    filterArticles();
+  }
+
+  /**
+   * Handles sort changes.
+   */
+  function handleSort() {
+    filterArticles();
+  }
+
+  /**
+   * Filters and sorts articles based on current criteria.
+   */
+  function filterArticles() {
+    const searchTerm = document.getElementById('search-input').value.toLowerCase();
+    const sourceFilter = document.getElementById('source-filter').value;
+    const dateFilter = document.getElementById('date-filter').value;
+    const sortFilter = document.getElementById('sort-filter').value;
+    
+    let filtered = currentArticles.filter(article => {
+      // Search filter
+      if (searchTerm && !article.title.toLowerCase().includes(searchTerm) && 
+          !(article.summary && article.summary.toLowerCase().includes(searchTerm))) {
+        return false;
+      }
+      
+      // Source filter
+      if (sourceFilter && article.source !== sourceFilter) {
+        return false;
+      }
+      
+      // Date filter
+      if (dateFilter) {
+        const articleDate = new Date(article.discovered_at);
+        const today = new Date();
+        const yesterday = new Date(today);
+        yesterday.setDate(yesterday.getDate() - 1);
+        
+        switch (dateFilter) {
+          case 'today':
+            if (articleDate.toDateString() !== today.toDateString()) return false;
+            break;
+          case 'yesterday':
+            if (articleDate.toDateString() !== yesterday.toDateString()) return false;
+            break;
+          case 'week':
+            const weekAgo = new Date(today);
+            weekAgo.setDate(weekAgo.getDate() - 7);
+            if (articleDate < weekAgo) return false;
+            break;
+          case 'month':
+            const monthAgo = new Date(today);
+            monthAgo.setMonth(monthAgo.getMonth() - 1);
+            if (articleDate < monthAgo) return false;
+            break;
+        }
+      }
+      
+      return true;
+    });
+    
+    // Sort articles
+    switch (sortFilter) {
+      case 'relevance':
+        filtered.sort((a, b) => (b.relevance_score || 0) - (a.relevance_score || 0));
+        break;
+      case 'date-desc':
+        filtered.sort((a, b) => new Date(b.discovered_at) - new Date(a.discovered_at));
+        break;
+      case 'date-asc':
+        filtered.sort((a, b) => new Date(a.discovered_at) - new Date(b.discovered_at));
+        break;
+      case 'source':
+        filtered.sort((a, b) => a.source.localeCompare(b.source));
+        break;
+    }
+    
+    displayFilteredArticles(filtered);
+  }
+
+  /**
+   * Displays filtered articles.
+   * @param {Array<Object>} articles - Filtered articles.
+   */
+  function displayFilteredArticles(articles) {
+    const container = document.getElementById('news-container');
+    
+    if (articles.length === 0) {
+      showEmptyState();
+      return;
+    }
+    
+    let cardsHtml = '';
+    articles.forEach(article => {
+      cardsHtml += createCard(article);
+    });
+    
+    container.innerHTML = cardsHtml;
+    addCardEventListeners();
+  }
+
+  /**
+   * Shows empty state when no articles are found.
+   */
+  function showEmptyState() {
+    const container = document.getElementById('news-container');
+    container.innerHTML = '';
+    document.getElementById('empty-state').style.display = 'block';
+  }
+
+  /**
+   * Toggles between light and dark themes.
+   */
+  function toggleTheme() {
+    const body = document.body;
+    const currentTheme = body.getAttribute('data-theme');
+    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+    
+    body.setAttribute('data-theme', newTheme);
+    
+    // Update theme toggle icon
+    const icon = document.querySelector('#theme-toggle i');
+    icon.className = newTheme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+    
+    // Save theme preference
+    localStorage.setItem('theme', newTheme);
+  }
+
+  /**
+   * Updates the last updated timestamp.
+   */
+  function updateLastUpdated() {
+    const now = new Date();
+    const formattedDate = now.toLocaleDateString() + ' ' + now.toLocaleTimeString();
+    document.getElementById('last-updated').textContent = 'Last updated: ' + formattedDate;
+  }
+
+  /**
+   * Callback function that runs if the data fetch fails.
+   * @param {Object} error - The error object.
+   */
+  function displayError(error) {
+    const container = document.getElementById('news-container');
+    container.innerHTML = '';
+    document.getElementById('error-message').textContent = error.message;
+    document.getElementById('error-state').style.display = 'block';
+  }
+
+  // Load saved theme preference
+  const savedTheme = localStorage.getItem('theme');
+  if (savedTheme) {
+    document.body.setAttribute('data-theme', savedTheme);
+    const icon = document.querySelector('#theme-toggle i');
+    if (savedTheme === 'dark') {
+      icon.className = 'fas fa-sun';
+    }
+  }
+</script>
