@@ -1,12 +1,13 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime, Float, Boolean
+from sqlalchemy import Column, Integer, String, Text, DateTime, Float, Boolean, Index
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.dialects.postgresql import JSONB, TSVECTOR
 from datetime import datetime
 import uuid
 
 Base = declarative_base()
 
 class Article(Base):
-    """Database model for news articles."""
+    """Database model for news articles with PostgreSQL optimizations."""
     
     __tablename__ = 'articles'
     
@@ -22,8 +23,22 @@ class Article(Base):
     relevance_score = Column(Float, default=0.0)
     category = Column(String(50), nullable=True)
     is_processed = Column(Boolean, default=False)
+    
+    # PostgreSQL-specific optimizations
+    metadata_json = Column(JSONB, nullable=True)  # Flexible metadata storage
+    search_vector = Column(TSVECTOR, nullable=True)  # Full-text search vector
+    
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Indexes for performance
+    __table_args__ = (
+        Index('idx_articles_source_date', 'source', 'discovered_at'),
+        Index('idx_articles_relevance', 'relevance_score'),
+        Index('idx_articles_category', 'category'),
+        Index('idx_articles_published', 'published_at'),
+        Index('idx_articles_search', 'search_vector', postgresql_using='gin'),
+    )
     
     def __repr__(self):
         return f"<Article(id={self.id}, title='{self.title[:50]}...', source='{self.source}')>"

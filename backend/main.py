@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import logging
 
 from backend.api import articles as articles_router
+from backend.database.connection import init_db, check_db_connection
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -44,10 +45,21 @@ app.include_router(articles_router.router)
 
 # --- Application Startup --- #
 @app.on_event("startup")
-def on_startup():
+async def on_startup():
     logging.info("FastAPI application starting up...")
-    # Here you could add logic to initialize database connections, etc.
-    pass
+    
+    # Initialize database
+    try:
+        init_db()
+        logging.info("Database initialized successfully")
+    except Exception as e:
+        logging.error(f"Failed to initialize database: {e}")
+    
+    # Check database connection
+    if check_db_connection():
+        logging.info("Database connection verified")
+    else:
+        logging.error("Database connection failed")
 
 @app.on_event("shutdown")
 def on_shutdown():

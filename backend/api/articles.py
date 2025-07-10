@@ -1,7 +1,11 @@
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Depends
+from sqlalchemy.orm import Session
 from typing import List, Optional
 import logging
 from datetime import datetime, timedelta
+
+from backend.database.connection import get_db
+from backend.database.repository import ArticleRepository
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -16,7 +20,8 @@ async def get_articles(
     offset: int = Query(default=0, ge=0, description="Number of articles to skip"),
     source: Optional[str] = Query(default=None, description="Filter by source"),
     category: Optional[str] = Query(default=None, description="Filter by category"),
-    days: int = Query(default=7, ge=1, le=30, description="Articles from last N days")
+    days: int = Query(default=7, ge=1, le=30, description="Articles from last N days"),
+    db: Session = Depends(get_db)
 ):
     """
     Retrieve articles with optional filtering.
@@ -24,23 +29,17 @@ async def get_articles(
     Returns a list of articles with pagination and filtering options.
     """
     try:
-        # TODO: Implement database query logic
-        # This is a placeholder response
-        articles = [
-            {
-                "id": 1,
-                "title": "Sample Article",
-                "source": "Channel NewsAsia",
-                "url": "https://example.com/article",
-                "summary": "This is a sample article summary.",
-                "category": "general",
-                "relevance_score": 75.0,
-                "discovered_at": datetime.now().isoformat()
-            }
-        ]
+        repo = ArticleRepository(db)
+        articles = repo.get_articles(
+            limit=limit,
+            offset=offset,
+            source=source,
+            category=category,
+            days=days
+        )
         
         return {
-            "articles": articles,
+            "articles": [article.to_dict() for article in articles],
             "total": len(articles),
             "limit": limit,
             "offset": offset
@@ -51,26 +50,21 @@ async def get_articles(
         raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.get("/{article_id}", summary="Get Article by ID")
-async def get_article(article_id: int):
+async def get_article(article_id: int, db: Session = Depends(get_db)):
     """
     Retrieve a specific article by its ID.
     """
     try:
-        # TODO: Implement database query logic
-        article = {
-            "id": article_id,
-            "title": "Sample Article",
-            "source": "Channel NewsAsia",
-            "url": "https://example.com/article",
-            "content": "This is the full article content...",
-            "summary": "This is a sample article summary.",
-            "category": "general",
-            "relevance_score": 75.0,
-            "discovered_at": datetime.now().isoformat()
-        }
+        repo = ArticleRepository(db)
+        article = repo.get_article_by_id(article_id)
         
-        return article
+        if not article:
+            raise HTTPException(status_code=404, detail="Article not found")
         
+        return article.to_dict()
+        
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error retrieving article {article_id}: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
@@ -132,26 +126,13 @@ async def refresh_articles():
         raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.get("/stats/summary", summary="Get Article Statistics")
-async def get_article_stats():
+async def get_article_stats(db: Session = Depends(get_db)):
     """
     Get summary statistics about articles.
     """
     try:
-        # TODO: Implement database query logic
-        stats = {
-            "total_articles": 1250,
-            "articles_today": 45,
-            "articles_this_week": 320,
-            "sources_count": 5,
-            "categories_distribution": {
-                "politics": 150,
-                "economy": 200,
-                "society": 180,
-                "technology": 120,
-                "general": 600
-            },
-            "last_updated": datetime.now().isoformat()
-        }
+        repo = ArticleRepository(db)
+        stats = repo.get_article_stats()
         
         return stats
         
