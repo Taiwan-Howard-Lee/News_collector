@@ -1,12 +1,13 @@
 import os
+from dotenv import load_dotenv
+load_dotenv(dotenv_path=os.path.join(os.path.dirname(os.path.dirname(__file__)), '..', 'config', '.env'), override=True)
 import logging
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import QueuePool
-from dotenv import load_dotenv
+from sqlalchemy import text
 
-# Load environment variables
-load_dotenv()
+from backend.models.resource import Base
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -14,6 +15,7 @@ logger = logging.getLogger(__name__)
 
 # Database configuration
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///data/news.db")
+print(f"[DEBUG] Using DATABASE_URL: {DATABASE_URL}")
 
 # PostgreSQL-specific configuration for Railway
 if DATABASE_URL.startswith("postgresql"):
@@ -53,7 +55,6 @@ def init_db():
     """
     Initialize the database by creating all tables.
     """
-    from backend.models.article import Base
     from backend.models.user import Base as UserBase
     
     try:
@@ -71,7 +72,7 @@ def check_db_connection():
     """
     try:
         with engine.connect() as connection:
-            result = connection.execute("SELECT 1")
+            result = connection.execute(text("SELECT 1"))
             logger.info("Database connection successful")
             return True
     except Exception as e:

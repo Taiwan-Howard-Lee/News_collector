@@ -1,8 +1,10 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 import logging
+import os
 
-from backend.api import articles as articles_router
+from backend.api import resources, instagram
 from backend.database.connection import init_db, check_db_connection
 
 # Configure logging
@@ -11,8 +13,8 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 # Initialize FastAPI app
 app = FastAPI(
     title="Singapore News Intelligence API",
-    description="API for accessing processed Singapore news content and interacting with the AI chatbot.",
-    version="1.0.0"
+    description="Instagram-style news intelligence platform API for Singapore news aggregation and AI-powered insights.",
+    version="2.0.0"
 )
 
 # --- CORS (Cross-Origin Resource Sharing) --- #
@@ -20,6 +22,10 @@ app = FastAPI(
 origins = [
     "http://localhost:3000",  # Next.js default port
     "http://127.0.0.1:3000",
+    "http://localhost:8080",  # Flutter web default
+    "http://localhost:8081",  # Flutter web alternative
+    "http://127.0.0.1:8080",
+    "http://127.0.0.1:8081",
 ]
 
 app.add_middleware(
@@ -40,8 +46,15 @@ def health_check():
     logging.info("Health check endpoint was called.")
     return {"status": "ok", "message": "API is running"}
 
-# Include the articles router
-app.include_router(articles_router.router)
+# Include API routers
+app.include_router(resources.router)
+app.include_router(instagram.router)
+
+# Mount static files for images
+os.makedirs("data/images", exist_ok=True)
+os.makedirs("data/placeholders", exist_ok=True)
+app.mount("/images", StaticFiles(directory="data/images"), name="images")
+app.mount("/placeholders", StaticFiles(directory="data/placeholders"), name="placeholders")
 
 # --- Application Startup --- #
 @app.on_event("startup")
@@ -60,10 +73,6 @@ async def on_startup():
         logging.info("Database connection verified")
     else:
         logging.error("Database connection failed")
-
-@app.on_event("shutdown")
-def on_shutdown():
-    logging.info("FastAPI application shutting down...")
 
 
 # To run this application:

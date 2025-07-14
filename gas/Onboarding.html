@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <base target="_top">
+    <title>Welcome! Tell Us About Yourself</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Personalize your AI news experience">
+    <?!= include('Stylesheet'); ?>
+    <style>
+      /* Onboarding-specific styles */
+      .onboarding-container {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: var(--spacing-xl);
+      }
+
+      .onboarding-header {
+        text-align: center;
+        margin-bottom: var(--spacing-2xl);
+      }
+
+      .onboarding-header h1 {
+        font-size: var(--font-size-3xl);
+        margin-bottom: var(--spacing-md);
+        background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+
+      .onboarding-header p {
+        font-size: var(--font-size-lg);
+        color: var(--text-secondary);
+        max-width: 600px;
+        margin: 0 auto;
+      }
+
+      .progress-bar {
+        width: 100%;
+        height: 6px;
+        background: var(--border-color);
+        border-radius: var(--radius-sm);
+        margin-bottom: var(--spacing-2xl);
+        overflow: hidden;
+      }
+
+      .progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+        width: 0%;
+        transition: width var(--transition-normal);
+      }
+
+      .form-container {
+        background: var(--surface-color);
+        border-radius: var(--radius-lg);
+        padding: var(--spacing-2xl);
+        box-shadow: 0 4px 16px var(--shadow-light);
+        border: 1px solid var(--border-color);
+      }
+
+      .question-group {
+        margin-bottom: var(--spacing-xl);
+        opacity: 0;
+        transform: translateY(20px);
+        animation: slideIn 0.5s ease-out forwards;
+      }
+
+      .question-group:nth-child(1) { animation-delay: 0.1s; }
+      .question-group:nth-child(2) { animation-delay: 0.2s; }
+      .question-group:nth-child(3) { animation-delay: 0.3s; }
+      .question-group:nth-child(4) { animation-delay: 0.4s; }
+
+      @keyframes slideIn {
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .question-label {
+        display: block;
+        font-size: var(--font-size-lg);
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: var(--spacing-sm);
+      }
+
+      .question-description {
+        font-size: var(--font-size-sm);
+        color: var(--text-secondary);
+        margin-bottom: var(--spacing-md);
+        line-height: 1.5;
+      }
+
+      .question-textarea {
+        width: 100%;
+        min-height: 120px;
+        padding: var(--spacing-md);
+        border: 2px solid var(--border-color);
+        border-radius: var(--radius-md);
+        font-size: var(--font-size-base);
+        font-family: inherit;
+        background: var(--background-color);
+        color: var(--text-primary);
+        resize: vertical;
+        transition: border-color var(--transition-fast);
+      }
+
+      .question-textarea:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(66, 133, 244, 0.1);
+      }
+
+      .question-textarea::placeholder {
+        color: var(--text-tertiary);
+      }
+
+      .character-count {
+        text-align: right;
+        font-size: var(--font-size-xs);
+        color: var(--text-tertiary);
+        margin-top: var(--spacing-xs);
+      }
+
+      .submit-container {
+        text-align: center;
+        margin-top: var(--spacing-2xl);
+      }
+
+      .submit-btn {
+        background: linear-gradient(135deg, var(--primary-color), var(--primary-hover));
+        color: white;
+        border: none;
+        padding: var(--spacing-md) var(--spacing-2xl);
+        font-size: var(--font-size-lg);
+        font-weight: 600;
+        border-radius: var(--radius-md);
+        cursor: pointer;
+        transition: all var(--transition-fast);
+        box-shadow: 0 2px 8px rgba(66, 133, 244, 0.3);
+        min-width: 200px;
+      }
+
+      .submit-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 16px rgba(66, 133, 244, 0.4);
+      }
+
+      .submit-btn:active {
+        transform: translateY(0);
+      }
+
+      .submit-btn:disabled {
+        background: var(--border-color);
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
+      }
+
+      .loading-spinner {
+        display: none;
+        width: 20px;
+        height: 20px;
+        border: 2px solid transparent;
+        border-top: 2px solid white;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin-right: var(--spacing-sm);
+      }
+
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+
+      .tips-section {
+        background: linear-gradient(135deg, #f0f7ff, #e8f4fd);
+        border-radius: var(--radius-md);
+        padding: var(--spacing-lg);
+        margin-top: var(--spacing-xl);
+        border-left: 4px solid var(--primary-color);
+      }
+
+      [data-theme="dark"] .tips-section {
+        background: linear-gradient(135deg, #1a2332, #1e2a3a);
+      }
+
+      .tips-title {
+        font-size: var(--font-size-lg);
+        font-weight: 600;
+        color: var(--primary-color);
+        margin-bottom: var(--spacing-sm);
+        display: flex;
+        align-items: center;
+      }
+
+      .tips-title i {
+        margin-right: var(--spacing-sm);
+      }
+
+      .tips-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+      }
+
+      .tips-list li {
+        font-size: var(--font-size-sm);
+        color: var(--text-secondary);
+        margin-bottom: var(--spacing-xs);
+        padding-left: var(--spacing-lg);
+        position: relative;
+      }
+
+      .tips-list li::before {
+        content: "✓";
+        position: absolute;
+        left: 0;
+        color: var(--success-color);
+        font-weight: bold;
+      }
+
+      /* Responsive design */
+      @media (max-width: 768px) {
+        .onboarding-container {
+          padding: var(--spacing-lg);
+        }
+
+        .form-container {
+          padding: var(--spacing-lg);
+        }
+
+        .onboarding-header h1 {
+          font-size: var(--font-size-2xl);
+        }
+      }
+    </style>
+  </head>
+  <body data-theme="light">
+    <div class="onboarding-container">
+      <header class="onboarding-header">
+        <h1>Welcome to Your AI News Companion</h1>
+        <p>Help us personalize your news experience by answering a few questions about your interests and preferences.</p>
+      </header>
+      
+      <div class="progress-bar">
+        <div class="progress-fill" id="progress-fill"></div>
+      </div>
+      
+      <form id="profile-form" class="form-container">
+        <div class="question-group">
+          <label for="q1" class="question-label">What are your long-term goals?</label>
+          <p class="question-description">
+            Tell us about your professional, personal, or academic aspirations. This helps us surface relevant opportunities and insights.
+          </p>
+          <textarea 
+            id="q1" 
+            name="q1" 
+            class="question-textarea" 
+            placeholder="e.g., I want to advance in my career in fintech, start my own business, or stay informed about sustainable investing..."
+            required
+            maxlength="500"
+          ></textarea>
+          <div class="character-count" id="q1-count">0/500</div>
+        </div>
+
+        <div class="question-group">
+          <label for="q2" class="question-label">What topics are you most passionate about?</label>
+          <p class="question-description">
+            Share your interests, hobbies, and areas of expertise. We'll prioritize news that aligns with your passions.
+          </p>
+          <textarea 
+            id="q2" 
+            name="q2" 
+            class="question-textarea" 
+            placeholder="e.g., Technology innovation, environmental sustainability, Singapore's startup ecosystem, healthcare developments..."
+            required
+            maxlength="500"
+          ></textarea>
+          <div class="character-count" id="q2-count">0/500</div>
+        </div>
+
+        <div class="question-group">
+          <label for="q3" class="question-label">What news do you usually avoid and why?</label>
+          <p class="question-description">
+            Understanding what you prefer not to see helps us filter content more effectively and focus on what matters to you.
+          </p>
+          <textarea 
+            id="q3" 
+            name="q3" 
+            class="question-textarea" 
+            placeholder="e.g., Celebrity gossip because it's not relevant to my goals, overly negative news that affects my mood, sports news because I'm not interested..."
+            required
+            maxlength="500"
+          ></textarea>
+          <div class="character-count" id="q3-count">0/500</div>
+        </div>
+
+        <div class="question-group">
+          <label for="q4" class="question-label">Describe your ideal AI news companion</label>
+          <p class="question-description">
+            How would you like the AI to communicate with you? What personality traits would make your news experience more engaging?
+          </p>
+          <textarea 
+            id="q4" 
+            name="q4" 
+            class="question-textarea" 
+            placeholder="e.g., Professional but friendly, asks thought-provoking questions, provides actionable insights, explains complex topics simply..."
+            required
+            maxlength="500"
+          ></textarea>
+          <div class="character-count" id="q4-count">0/500</div>
+        </div>
+
+        <div class="tips-section">
+          <div class="tips-title">
+            <i class="fas fa-lightbulb" aria-hidden="true"></i>
+            Tips for better personalization
+          </div>
+          <ul class="tips-list">
+            <li>Be specific about your interests and goals</li>
+            <li>Mention industries, topics, or themes you care about</li>
+            <li>Share your preferred communication style</li>
+            <li>Don't worry about perfect answers - you can always refine later</li>
+          </ul>
+        </div>
+
+        <div class="submit-container">
+          <button type="submit" class="submit-btn" id="submit-btn">
+            <span class="loading-spinner" id="loading-spinner"></span>
+            <span id="submit-text">Create My Profile & Start</span>
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <script>
+      // Character counting and progress tracking
+      const textareas = document.querySelectorAll('.question-textarea');
+      const progressFill = document.getElementById('progress-fill');
+      
+      textareas.forEach((textarea, index) => {
+        const countElement = document.getElementById(`q${index + 1}-count`);
+        
+        textarea.addEventListener('input', function() {
+          const count = this.value.length;
+          const maxLength = this.getAttribute('maxlength');
+          countElement.textContent = `${count}/${maxLength}`;
+          
+          // Update progress bar
+          updateProgress();
+        });
+      });
+
+      function updateProgress() {
+        const totalFields = textareas.length;
+        let filledFields = 0;
+        
+        textareas.forEach(textarea => {
+          if (textarea.value.trim().length > 0) {
+            filledFields++;
+          }
+        });
+        
+        const progress = (filledFields / totalFields) * 100;
+        progressFill.style.width = `${progress}%`;
+      }
+
+      // Form submission
+      document.getElementById('profile-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const submitBtn = document.getElementById('submit-btn');
+        const submitText = document.getElementById('submit-text');
+        const loadingSpinner = document.getElementById('loading-spinner');
+        
+        // Show loading state
+        submitBtn.disabled = true;
+        loadingSpinner.style.display = 'inline-block';
+        submitText.textContent = 'Creating Profile...';
+        
+        const profileData = {
+          q1: document.getElementById('q1').value,
+          q2: document.getElementById('q2').value,
+          q3: document.getElementById('q3').value,
+          q4: document.getElementById('q4').value
+        };
+
+        google.script.run
+          .withSuccessHandler(function(result) {
+            if (result.status === 'success') {
+              // Success - redirect to main app
+              window.top.location.href = "<?= ScriptApp.getService().getUrl(); ?>";
+            } else {
+              // Handle error
+              alert('Error saving profile: ' + result.message);
+              resetSubmitButton();
+            }
+          })
+          .withFailureHandler(function(err) {
+            alert('Error saving profile: ' + err.message);
+            resetSubmitButton();
+          })
+          .saveUserProfile(profileData);
+      });
+
+      function resetSubmitButton() {
+        const submitBtn = document.getElementById('submit-btn');
+        const submitText = document.getElementById('submit-text');
+        const loadingSpinner = document.getElementById('loading-spinner');
+        
+        submitBtn.disabled = false;
+        loadingSpinner.style.display = 'none';
+        submitText.textContent = 'Create My Profile & Start';
+      }
+
+      // Initialize progress on page load
+      updateProgress();
+    </script>
+  </body>
+</html>

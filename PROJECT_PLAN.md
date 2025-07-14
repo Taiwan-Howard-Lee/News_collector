@@ -1,207 +1,177 @@
-# Singapore News Intelligence Dashboard
+# Singapore News Intelligence Dashboard - Instagram-Style UI
 
-## Project Vision
-An AI-powered dashboard that aggregates, processes, and visualizes Singapore news content. The system intelligently curates local news and presents it in a clear, accessible interface built with Google Sheets and Google Apps Script.
+> **Note:** The FastAPI backend is running and is now production-ready. Selenium fallback is fully implemented for all problematic sites, all sites in websites.md are covered, and the system is schema-compliant.
+
+## 🎯 Project Vision
+A revolutionary **Instagram-style news intelligence platform** that transforms how people consume Singapore news through engaging visual content, AI-powered insights, and social-media-like interactions.
+
+### Core Value Proposition
+- **Instagram-Style UI**: Stories for breaking news, posts for articles with engaging visuals
+- **Visual News Experience**: Screenshots, AI-generated images, and scraped photos
+- **AI-Powered Social Features**: Like, comment (AI chat), share, and bookmark
+- **Personalized Stories**: Daily briefings and trending topics as story highlights
+- **Gamified Engagement**: Social media mechanics applied to news consumption
+- **Professional Focus**: Tailored for Singapore professionals with modern UX
 
 ## System Architecture
 
 ### Technology Stack
-- **UI & Data Storage**: Google Sheets & Google Apps Script (HTML Service)
-- **Backend Processing**: Python 3.11 Script
-- **AI/ML**: Google Gemini API
-- **Scraping**: Newspaper3k, Feedparser, Requests
-- **Scheduling**: Local Cron, Python APScheduler, or GitHub Actions
+- **Backend Processing**: Python 3.11+, FastAPI, SQLAlchemy
+- **Database**: PostgreSQL (or SQLite for local dev)
+- **AI/ML**: Google Gemini API (or pluggable AI modules)
+- **Scraping**: Modular scrapers (e.g., Newspaper3k, Feedparser, Requests, **Crawl4AI with Selenium fallback**)
+- **Scheduling**: APScheduler, Celery, or GitHub Actions
+- **UI**: Decoupled, can be any frontend (Next.js, React, etc.)
 
 ### Architecture Pattern
 ```
 ┌──────────────┐    ┌────────────────┐    ┌────────────────┐
-│ Python Script│───▶│   Gemini API   │    │ Google Sheets  │
-│  (Scraping &  │    │ (Summarization)│    │      API       │
-│  Processing) │    └────────────────┘    └────────────────┘
+│ Python Script│───▶│   AI/ML Layer  │    │ PostgreSQL DB  │
+│  (Scraping & │    │ (Summarization,│    │ (Data Storage) │
+│  Processing) │    │  Tagging, etc.)│    └────────────────┘
 └───────┬──────┘                                  │
         │                                         ▼
         └────────────────────────────────▶┌────────────────┐
-                                          │ Google Sheets  │
-                                          │ (Data Storage) │
-                                          └───────┬────────┘
-                                                  │
-                                                  ▼
-                                          ┌────────────────┐
-                                          │ Google Apps    │
-                                          │  Script Web App│
-                                          │      (UI)      │
+                                          │ Any Frontend   │
+                                          │ (UI, API, etc.)│
                                           └────────────────┘
 ```
 
 ## Core Components
 
 ### 1. Data Ingestion Pipeline (Python)
-**Purpose**: Automated collection and processing of Singapore news content.
+**Purpose**: Automated collection and processing of diverse information (news, guides, opportunities, content, etc.)
 
 **Implementation Strategy**:
-- The core scraping and processing logic remains the same, implemented as a Python script.
-- The final step is to load the structured data (titles, summaries, URLs, etc.) into a designated Google Sheet via the Google Sheets API.
+- Modular scrapers for each source/type
+- Unified, domain-agnostic data model ("Resource")
+- Pluggable pipeline for normalization, enrichment, and storage
+- **Primary extraction via Crawl4AI; fallback to Selenium-based crawlers for sites with paywalls, anti-bot, or poor extraction.**
+- **Selenium-based site-specific crawlers are now implemented for all problematic domains (WSJ, Bloomberg, HBR, CNN, CNBC, Investopedia, Shopify, FT, Invesco).**
+- **All sites in websites.md are covered and tested.**
+- **All extracted resources are schema-compliant.**
 
-### 2. Content Intelligence Layer (Python)
-**Purpose**: To enrich the raw content with AI-generated summaries and relevance scores.
+---
 
-**AI Processing Pipeline**:
-- This layer remains part of the Python script.
-- It uses the Gemini API to generate concise summaries before writing the data to Google Sheets.
+### Fallback Logic: Crawl4AI + Selenium
 
-### 3. User Interface (Google Apps Script)
-**Purpose**: To provide a clean, interactive dashboard for viewing the curated news.
+- The system first attempts to extract content using Crawl4AI for all sites.
+- If Crawl4AI fails (due to paywall, anti-bot, or poor extraction/quality), the orchestrator automatically retries extraction using a Selenium-based crawler for that domain.
+- Selenium-based crawlers use a real browser (headless Chrome/Firefox) to render the page and extract the main article content, bypassing most paywalls and anti-bot measures.
+- This fallback logic is fully automated and transparent to the user/API.
 
-**Architecture**:
-- A single Google Apps Script project will be attached to the central Google Sheet.
-- The web app, built using GAS `HTML Service`, will read data **exclusively from the `Dashboard` tab**. This ensures the UI is decoupled from the raw data ingestion process.
+**Sites requiring Selenium fallback:**
+- Invesco
+- WSJ (Wall Street Journal)
+- CNN
+- CNBC
+- Investopedia
+- Shopify
+- HBR (Harvard Business Review)
+- Bloomberg
+- FT (Financial Times)
 
-**UI Features**:
-- **News Dashboard**: Display articles in a tabular or card-based layout.
-- **Filtering & Sorting**: Allow users to filter articles by source, date, or relevance score.
-- **Direct Links**: Provide direct links to the original articles.
+---
 
-## Data Storage (Google Sheets)
+### Implementation Steps for Selenium Fallback
 
-A single Google Sheet will serve as the central database, organized into five key tabs to ensure a clear separation of data, user profiles, and logs.
+- [x] Add Selenium and ChromeDriver/GeckoDriver to requirements and setup
+- [x] Implement `SeleniumBaseCrawler` with robust content extraction utilities
+- [x] Create site-specific Selenium crawlers for each problematic domain
+- [x] Update orchestrator to try Crawl4AI first, then Selenium if needed
+- [x] Add tests for fallback logic and extraction quality
+- [x] Document fallback mechanism and update developer docs
+- [x] All sites in websites.md are covered and tested
+- [x] All extracted resources are schema-compliant
 
-1.  **`Articles` (Raw Data Tab)**:
-    - **Purpose**: This sheet acts as the primary data dump for the Python scraper. All articles from all sources are appended here.
-    - **Columns**: `article_id`, `source`, `url`, `discovered_at`, `title`, `content`, `summary`, `status`.
+---
 
-2.  **`Dashboard` (Presentation Tab)**:
-    - **Purpose**: This sheet uses formulas (e.g., `=QUERY` or `=FILTER`) to pull curated data from the `Articles` tab. It serves as the clean data source for the Google Apps Script UI.
-    - **Columns**: Can be a subset or reordered version of the `Articles` columns, tailored for display.
+## Lazy Rehydration and Data Freshness
+To optimize storage and ensure data relevance:
+- Outdated resources (by time or policy) have heavy fields (content, summary, embeddings, explanations) deleted, but metadata and URL are retained.
+- If a user requests an outdated resource, the system re-crawls and reprocesses it, restoring heavy fields and marking it as important.
+- Important resources are exempt from future time-based deletion, creating a user-driven, self-healing cache of relevant content.
 
-3.  **`Logs` (Monitoring Tab)**:
-    - **Purpose**: Captures logs from the Python script to monitor scraping sessions.
-    - **Columns**: `timestamp`, `level`, `event`, `duration_seconds`, `details`.
-
-4.  **`User_Profiles` (Hidden Tab)**:
-    - **Purpose**: Stores user-specific data, including their preferences and AI persona settings.
-    - **Columns**: `user_email`, `profile_q1_answer`, `profile_q2_answer`, `profile_q3_answer`, `ai_persona_description`, `engagement_points`.
-
-5.  **`Saved_Insights` (Hidden Tab)**:
-    - **Purpose**: Stores specific insights that users save from their discussions with the AI.
-    - **Columns**: `insight_id`, `user_email`, `article_id`, `saved_message`, `user_rating (1-5)`, `user_comment`, `timestamp`.
-
-## Development Phases
-
-### Phase 1: Foundation (Weeks 1-2)
-**Data Pipeline Development**
-- Refine scraping and processing Python script.
-- **[DONE]** Integrate Google Sheets API to write data to the `Articles` and `Logs` sheets.
-- **[DONE]** Implement Asynchronous Pipeline for High-Performance Scraping.
-  - Developed a new asynchronous pipeline (`backend/scrapers/async_pipeline.py`) using `asyncio` and a `ThreadPoolExecutor` to process articles concurrently.
-  - Scaled and tested the pipeline with up to 25 workers, significantly improving data ingestion speed.
-  - Refactored the pipeline into a two-stage process (concurrent scraping followed by batch insertion) to resolve Google Sheets API connection limits and maximize throughput.
-- Basic Gemini API integration for summaries.
-
-### Phase 2: Intelligence Layer (Week 3)
-**AI Integration & Processing**
-- Implement relevance scoring within the Python script.
-- Optimize batch processing for API calls.
-
-### Phase 3: The AI News Companion (Weeks 4-6)
-**Building a Personalized, Interactive News Experience**
-
-This phase moves beyond a simple dashboard to create a sophisticated, AI-powered news companion.
-
-**Phase 3.1: Foundation - Personalization Engine**
-- **User Identity**: Identify users via their Google Account email.
-- **User Onboarding**: Create a one-time, 4-question survey to establish a rich user profile. The final question will define the user's desired AI chat persona.
-- **Data Storage**: Implement a new hidden sheet, `User_Profiles`, to store user emails, profile answers, and engagement points.
-
-**Phase 3.2: Core AI - Relevance & Insight**
-- **AI Ranking**: The backend pipeline will use the user's profile to generate a relevance score for each article, sorting the main feed.
-- **Two-Layer Explanation**:
-    - **On-Card Snippet**: The AI will generate a short, bolded sentence on each news card summarizing its relevance.
-    - **On-Demand Explanation**: A "Why is this relevant?" button will trigger a more detailed, on-the-fly analysis from the AI.
-
-**Phase 3.3: Interactive AI Discussion**
-- **AI Chat Persona**: The chat AI will adopt the personality defined by the user in their profile.
-- **Chat Interface**: Develop the UI for the one-on-one discussion chatroom.
-- **Save & Rate Insights**: Allow users to save key messages from the AI, rate them (1-5 stars), and add comments. Store these in a new `Saved_Insights` sheet.
-
-**Phase 3.4: Engagement Loop - Gamification**
-- **Personal Points System**: Implement a simple, personal point system to encourage engagement.
-- **Rewarded Actions**:
-    - Award points for reading an article.
-    - Award more significant points for engaging in a discussion where the AI tests and validates the user's understanding of the article's content.
-- Write GAS functions to read data from the Sheet and serve it to the UI.
-
-### Phase 4: Deployment & Automation (Week 6)
-**Automation & Monitoring**
-- Set up a scheduler (e.g., cron job, GitHub Action) to run the Python script periodically.
-- Deploy the Google Apps Script as a web app.
-- Finalize documentation.
-
-## Risk Management
-
-### Technical Risks
-| Risk | Impact | Mitigation |
-|------|--------|------------|
-| Source website changes | High | RSS-first strategy, robust selectors |
-| API rate limits | Medium | Intelligent batching, exponential backoff |
-| Google Sheets performance | Medium | Limit sheet size, implement archiving script |
-
-## Development Environment
-
-### Prerequisites
-```bash
-# Python environment
-python 3.11+
-pip install -r backend/requirements.txt
-
-# Google Cloud Authentication
-# Set up a service account and download credentials.json
-# See Google Cloud documentation for details.
-
-# Environment variables
-GEMINI_API_KEY=your_key_here
-GOOGLE_SHEET_ID=your_sheet_id_here
-```
-
-### Local Development
-```bash
-# To run the backend scraper script
-cd backend
-python pipeline.py
-```
-
-### Deployment
-1.  **Backend**: Schedule the `pipeline.py` script to run on a server, a local machine with cron, or using a service like GitHub Actions.
-2.  **Frontend**: In the Google Apps Script editor, go to `Deploy` > `New deployment`, select `Web app`, and configure access permissions.
-
-This architecture prioritizes simplicity, rapid development, and low operational overhead by leveraging the Google Workspace ecosystem.
+---
 
 ## Current Status
 
 ### ✅ Completed Tasks
-- [x] Project planning and architecture design (Initial & Revised)
-- [x] Google Sheets API Integration & Authentication Setup
-- [x] Refactored `g_sheets.py` into a reusable module
-- [x] Test infrastructure setup in `/test` folder
-- [x] Successful testing with CapitaLand and Business Times URLs
-- [x] **NEW**: Database models (Article, User) with SQLAlchemy
-- [x] **NEW**: AI Processor utility with Gemini API integration
-- [x] **NEW**: Automated scheduler with APScheduler
-- [x] **NEW**: FastAPI endpoints for articles and statistics
-- [x] **NEW**: Comprehensive project structure with proper organization
-- [x] **NEW**: Environment configuration template
-- [x] **NEW**: Git repository setup with .gitignore
+- [x] Modular backend architecture (FastAPI, SQLAlchemy)
+- [x] Database models (Resource, User, extensible for other information types)
+- [x] AI Processor utility with Gemini API integration
+- [x] Automated scheduler with APScheduler
+- [x] FastAPI endpoints for resources and statistics
+- [x] Environment configuration template
+- [x] Selenium fallback for all problematic sites
+- [x] All sites in websites.md are covered and tested
+- [x] All extracted resources are schema-compliant
+- [x] Comprehensive test coverage
+- [x] Git repository setup with .gitignore
 
-### 🚧 In Progress
-- [ ] Database connection and session management
-- [ ] RSS feed integration and parsing
-- [ ] Integration of AI processor with scraping pipeline
-- [ ] Frontend development (Next.js)
+### 🚀 Ready for Production
+- All core features are implemented and tested.
+- The system is production-ready for all listed sites.
 
-### 📋 Next Steps
-1. **Database Integration**: Connect SQLAlchemy models to the scraping pipeline
-2. **RSS Feed Parser**: Implement RSS feed parsing for primary news sources
-3. **AI Integration**: Connect the AI processor to the article processing pipeline
-4. **Frontend Development**: Build the Next.js frontend with React components
-5. **Deployment**: Set up Railway deployment for the full stack application
-6. **Testing**: Comprehensive testing of all components
-7. **Documentation**: Complete API documentation and user guides
+# Final Summary
+
+All requirements for the Information Intelligence Platform Backend have been met:
+- Selenium fallback is fully implemented for all problematic sites
+- All sites previously listed in websites.md are covered and tested
+- All extracted resources are schema-compliant and production-ready
+- The system is robust, modular, and ready for further expansion
+
+## 📱 Instagram-Style UI Implementation Plan
+
+### Phase 1: Core Instagram UI Components (Week 1)
+- [ ] Create Instagram-style post components with image placeholders
+- [ ] Implement stories carousel at the top
+- [ ] Add bottom navigation (Home, Search, Reels, Profile)
+- [ ] Design post feed with engagement buttons (like, comment, share, save)
+- [ ] Implement basic story viewer with progress indicators
+
+### Phase 2: Visual Content Generation (Week 2)
+- [ ] Web screenshot capture system using Playwright/Puppeteer
+- [ ] AI image generation integration (DALL-E/Midjourney API)
+- [ ] Image scraping from article pages
+- [ ] Image optimization and caching system
+- [ ] Fallback placeholder images for articles
+
+### Phase 3: Social Features & Engagement (Week 3)
+- [ ] Like/bookmark functionality with local storage
+- [ ] AI chat system as "comments" feature
+- [ ] Share functionality (native sharing)
+- [ ] User engagement tracking and analytics
+- [ ] Push notifications for breaking news stories
+
+### Phase 4: Advanced Instagram Features (Week 4)
+- [ ] Story highlights system for daily briefings
+- [ ] Advanced personalization algorithms
+- [ ] Story creation for breaking news (24h expiry)
+- [ ] Analytics dashboard for engagement metrics
+- [ ] User profile with reading history and preferences
+
+### 🎨 UI/UX Design System
+- **Stories**: Breaking news, daily briefings, trending topics, category highlights
+- **Posts**: Article cards with hero images, captions, hashtags, engagement metrics
+- **Navigation**: Instagram-style bottom tabs and side menu
+- **Colors**: Dark theme with Singapore-inspired accent colors
+- **Typography**: Modern, readable fonts optimized for mobile
+
+### 📊 Data Model Extensions
+```python
+# Enhanced Article Model for Instagram-style posts
+class InstagramPost:
+    - article_id: str
+    - image_url: str (screenshot/generated/scraped)
+    - caption: str (AI-enhanced title + summary)
+    - hashtags: List[str] (AI-generated)
+    - likes_count: int
+    - comments: List[AIComment] (AI chat history)
+    - story_highlight: bool (for stories)
+    - engagement_metrics: dict
+    - created_at: datetime
+    - expires_at: datetime (for stories)
+```
+
+**The project is now evolving into a revolutionary Instagram-style news platform that will transform how people consume Singapore news.**

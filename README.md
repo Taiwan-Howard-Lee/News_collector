@@ -1,228 +1,222 @@
-# Singapore News Intelligence Chatbot
+# 📱 Singapore News Intelligence Dashboard - Instagram Style
 
-An AI-powered conversational interface that aggregates, processes, and personalizes Singapore news content. The system intelligently curates local news based on user-defined relevance criteria and delivers insights through natural conversation.
+A revolutionary news consumption platform that transforms Singapore news into an engaging Instagram-style experience, featuring AI-powered interactions, beautiful visual content, and social engagement features.
 
-## 🏗️ Project Structure
+## ✨ Features
 
-```
-News_collector/
-├── backend/                 # Python FastAPI backend
-│   ├── api/                # REST API endpoints
-│   ├── core/               # Core business logic
-│   ├── scrapers/           # News scraping modules
-│   ├── models/             # Database models
-│   └── utils/              # Utility functions
-├── frontend/               # Next.js frontend
-│   ├── src/
-│   │   ├── components/     # React components
-│   │   ├── pages/          # Next.js pages
-│   │   ├── hooks/          # Custom React hooks
-│   │   └── utils/          # Frontend utilities
-│   └── public/             # Static assets
-├── config/                 # Configuration files
-├── data/                   # Data storage
-│   ├── raw/               # Raw scraped data
-│   └── processed/         # Processed data
-├── logs/                   # Application logs
-├── test/                   # Test files
-├── docs/                   # Documentation
-└── scripts/                # Utility scripts
-```
+### 🎨 Instagram-Style Interface
+- **Stories Bar**: Daily briefings and breaking news in story format
+- **Post Feed**: News articles as Instagram-style posts with images
+- **Smooth Animations**: Professional-grade visual effects and transitions
+- **Social Engagement**: Like, comment, share, and bookmark functionality
+- **Beautiful Gradients**: Instagram-authentic color schemes and shadows
 
-## 🚀 Technology Stack
+### 🤖 AI-Powered Intelligence
+- **Smart Comments**: AI responds contextually to user comments
+- **Auto Hashtags**: Intelligent hashtag generation from content
+- **Content Summarization**: AI-powered article summaries
+- **Engagement Scoring**: Dynamic relevance and engagement algorithms
+- **Trending Algorithm**: Smart content ranking based on interactions
 
-- **Frontend**: Next.js 14, React 18, Tailwind CSS
-- **Backend**: Python 3.11, FastAPI, Uvicorn
-- **Database**: SQLite with WAL mode
-- **AI/ML**: Google Gemini 2.0 Lite API
-- **Scraping**: Trafilatura, Feedparser, Requests
-- **Deployment**: Railway (containerized)
-- **Process Management**: APScheduler for background tasks
+### 🖼️ Visual Content Generation
+- **Category Placeholders**: Beautiful gradient images for each news category
+- **Image Optimization**: Instagram-square format (1080x1080)
+- **Smooth Gradients**: Multi-color diagonal gradients with texture
+- **Dynamic Colors**: Category-specific color schemes
 
-## 📋 Features
+### 📊 Advanced Analytics
+- **Real-time Engagement**: Live tracking of likes, shares, comments
+- **Trending Posts**: Algorithm-based trending content
+- **Category Analytics**: Post distribution and engagement by category
+- **User Interactions**: Comprehensive engagement metrics
 
-### Core Functionality
-- ✅ **Automated News Scraping**: RSS feeds + web scraping from Singapore news sources
-- ✅ **AI-Powered Summarization**: Gemini 2.0 Lite for content processing
-- ✅ **Relevance Scoring**: Personalized content ranking based on user preferences
-- ✅ **Conversational Interface**: Natural language chat with article recommendations
-- ✅ **Real-time Updates**: Live article suggestions during conversations
+## 🚀 Tech Stack
 
-### News Sources
-- **Primary (RSS)**: Channel NewsAsia, TODAY, Business Times, Yahoo Singapore
-- **Secondary (Web Scraping)**: Mothership, Rice Media, AsiaOne, The New Paper
+### Backend
+- **FastAPI**: High-performance Python web framework
+- **SQLAlchemy**: Database ORM with Instagram-style engagement tracking
+- **Google Gemini AI**: Advanced language model for AI comments and analysis
+- **Pillow**: Image processing and generation
+- **Pydantic**: Data validation and serialization
+- **Uvicorn**: ASGI server for production deployment
 
-## 🛠️ Development Setup
+### Frontend
+- **Flutter Web**: Cross-platform UI framework with Instagram-style components
+- **Riverpod**: State management for real-time updates
+- **Material Design 3**: Enhanced with Instagram-style customizations
+- **Custom Animations**: Smooth transitions and micro-interactions
+- **Responsive Design**: Mobile-first Instagram-like experience
+
+### Database Schema
+- **Resources**: Enhanced with engagement fields (likes, comments, shares)
+- **Image URLs**: Dynamic image serving and caching
+- **Engagement Tracking**: Real-time social interaction metrics
+- **AI Integration**: Comment storage and response tracking
+
+## 🎯 Quick Start
 
 ### Prerequisites
+- Python 3.8+
+- Flutter SDK 3.0+
+- Git
+
+### 🔧 Backend Setup
 ```bash
-# Python 3.11+
-python --version
-
-# Git
-git --version
-```
-
-### Quick Start
-
-1. **Clone the repository**
-```bash
+# Clone repository
 git clone https://github.com/Taiwan-Howard-Lee/News_collector.git
 cd News_collector
-```
 
-2. **Run the setup script**
-```bash
-python scripts/setup.py
-```
-
-3. **Configure environment variables**
-```bash
-# Copy environment template
-cp config/env.example config/.env
-
-# Edit with your API keys
-GEMINI_API_KEY=your_gemini_api_key_here
-GOOGLE_SHEET_ID=your_google_sheet_id_here
-```
-
-4. **Add Google Cloud credentials**
-```bash
-# Place your service account JSON file at:
-config/credentials.json
-```
-
-### Manual Setup (Alternative)
-
-1. **Backend Setup**
-```bash
-cd backend
+# Create virtual environment
 python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Install dependencies
 pip install -r requirements.txt
+
+# Set up environment variables
+cp config/.env.example config/.env
+# Edit config/.env with your API keys
+
+# Run database migrations (Instagram-style fields)
+python backend/database/migrate_instagram.py
+
+# Generate beautiful placeholder images
+curl -X POST http://localhost:8000/instagram/generate-all-images
+
+# Start development server
+uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-2. **Environment Configuration**
+### 📱 Frontend Setup
 ```bash
-# Copy environment template
-cp config/env.example config/.env
+# Navigate to frontend directory
+cd frontend
 
-# Edit with your API keys
+# Install dependencies
+flutter pub get
+
+# Run development server
+flutter run -d web-server --web-port 8080
+```
+
+### 🌐 Access Applications
+- **Instagram-Style Frontend**: http://localhost:8080
+- **API Documentation**: http://localhost:8000/docs
+- **Generated Images**: http://localhost:8000/placeholders/[category].jpg
+
+## 📖 API Documentation
+
+### Instagram Endpoints
+- `GET /instagram/posts` - Get Instagram-style posts with engagement
+- `GET /instagram/stories` - Get daily briefing and breaking news stories
+- `POST /instagram/posts/{id}/like` - Like a post
+- `POST /instagram/posts/{id}/comment` - Add AI-powered comment
+- `POST /instagram/posts/{id}/share` - Share a post
+- `GET /instagram/trending` - Get trending posts
+- `GET /instagram/categories` - Get category statistics
+
+### Image Generation
+- `POST /instagram/generate-all-images` - Generate images for all posts
+- `POST /instagram/posts/{id}/generate-image` - Generate image for specific post
+
+## ⚙️ Configuration
+
+### Environment Variables
+Create `config/.env` with:
+```env
+# AI Configuration
 GEMINI_API_KEY=your_gemini_api_key_here
-GOOGLE_SHEET_ID=your_google_sheet_id_here
+
+# Database Configuration
+DATABASE_URL=sqlite:///data/news.db
+
+# API Configuration
+BASE_URL=http://localhost:8000
+
+# Image Generation
+IMAGE_QUALITY=85
+IMAGE_SIZE=1080
 ```
 
-### Running the Application
+## 🎨 Visual Features
 
-**Development Mode:**
-```bash
-# Backend API Server (Terminal 1)
-cd backend
-uvicorn main:app --reload --port 8000
+### Stories
+- Instagram-style circular avatars with gradient rings
+- Smooth animations and transitions
+- Daily briefing and breaking news categories
+- Auto-expiring 24-hour stories
 
-# Scraper (Terminal 2)
-cd backend
-python run_scraper.py
+### Posts
+- Beautiful category-based placeholder images
+- Smooth like animations with Instagram red
+- AI-powered comment system
+- Social engagement tracking
 
-# Google Apps Script (Deploy separately)
-# Deploy the gas/ folder as a Google Apps Script web app
-```
-
-**Access the application:**
-- Backend API: http://localhost:8000
-- API Documentation: http://localhost:8000/docs
-- Google Apps Script Dashboard: (Deploy from gas/ folder)
-
-## 🧪 Testing
-
-```bash
-# Run all tests
-cd test
-python run_tests.py
-
-# Run specific tests
-python test_trafilatura_scraper.py
-python detailed_test_results.py
-```
-
-## 📊 Current Status
-
-### ✅ Completed
-- [x] Project architecture and planning
-- [x] Google Sheets API integration
-- [x] Database models (SQLAlchemy)
-- [x] AI processor with Gemini API
-- [x] Automated scheduler (APScheduler)
-- [x] FastAPI endpoints
-- [x] Google Apps Script UI components
-- [x] Test infrastructure setup
-- [x] Comprehensive project structure
-
-### 🚧 In Progress
-- [ ] Database connection and session management
-- [ ] RSS feed integration and parsing
-- [ ] Integration of AI processor with scraping pipeline
-- [ ] Frontend development (Next.js)
-
-### 📋 Next Steps
-1. **Database Integration**: Connect SQLAlchemy models to the scraping pipeline
-2. **RSS Feed Parser**: Implement RSS feed parsing for primary news sources
-3. **AI Integration**: Connect the AI processor to the article processing pipeline
-4. **Frontend Development**: Build the Next.js frontend with React components
-5. **Deployment**: Set up Railway deployment for the full stack application
-6. **Testing**: Comprehensive testing of all components
-7. **Documentation**: Complete API documentation and user guides
-
-## 🔧 Configuration
-
-Key configuration files:
-- `config/.env` - Environment variables
-- `config/sources.json` - News source definitions
-- `config/scraping.json` - Scraping parameters
-- `backend/requirements.txt` - Python dependencies
-- `frontend/package.json` - Node.js dependencies
-
-## 📈 Monitoring
-
-The system includes comprehensive monitoring:
-- **Database Stats**: Article counts, source performance
-- **Scraping Logs**: Success/failure rates, execution times
-- **API Usage**: Gemini API costs and rate limits
-- **System Health**: Uptime, response times
+### Navigation
+- Instagram-style bottom navigation
+- Smooth transitions between sections
+- Active state indicators with gradients
 
 ## 🚀 Deployment
 
-**Railway Deployment:**
+### Backend (Railway)
 ```bash
+# Connect to Railway
 railway login
-railway init
+railway link
 railway up
 ```
 
-**Docker Deployment:**
+### Frontend (Netlify)
 ```bash
-docker-compose up -d
+# Build for production
+flutter build web
+# Deploy build/web directory
 ```
 
-## 📝 License
+## 🧹 Codebase Structure
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+```
+News_collector/
+├── backend/
+│   ├── api/           # Instagram-style API endpoints
+│   ├── database/      # Database models and migrations
+│   ├── models/        # Pydantic models with engagement fields
+│   ├── services/      # Image generation and AI services
+│   └── utils/         # AI processing utilities
+├── frontend/
+│   ├── lib/
+│   │   ├── models/    # Instagram post and story models
+│   │   ├── providers/ # State management
+│   │   ├── screens/   # Instagram-style screens
+│   │   ├── services/  # API communication
+│   │   └── widgets/   # Instagram-style components
+│   └── web/           # Web-specific configurations
+├── config/            # Environment configuration
+├── data/              # Database and generated images
+└── docs/              # Documentation
+```
 
 ## 🤝 Contributing
 
 1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests for new functionality
-5. Submit a pull request
+2. Create a feature branch: `git checkout -b feature/instagram-enhancement`
+3. Make your changes and test thoroughly
+4. Commit your changes: `git commit -m 'Add Instagram-style feature'`
+5. Push to the branch: `git push origin feature/instagram-enhancement`
+6. Submit a pull request
 
-## 📞 Support
+## 📄 License
 
-For questions or issues, please:
-1. Check the documentation in `/docs`
-2. Review existing issues
-3. Create a new issue with detailed information
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## 🆘 Support
+
+For support and questions:
+- Create an issue on GitHub
+- Check the API documentation at http://localhost:8000/docs
+- Review the Instagram UI README at `INSTAGRAM_UI_README.md`
 
 ---
 
-**Built with ❤️ for Singapore news intelligence**
+**🎉 Experience news like never before with our Instagram-style interface!**

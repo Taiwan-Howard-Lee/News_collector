@@ -1,0 +1,423 @@
+<script>
+  // Global variables
+  let allArticles = [];
+  let filteredArticles = [];
+  let currentTheme = 'light';
+
+  /**
+   * Runs when the window is loaded. 
+   * Initializes the application and sets up event listeners.
+   */
+  window.addEventListener('load', function() {
+    initializeApp();
+  });
+
+  /**
+   * Initialize the application
+   */
+  function initializeApp() {
+    setupEventListeners();
+    loadThemePreference();
+    fetchNews();
+    updateLastUpdated();
+  }
+
+  /**
+   * Set up all event listeners
+   */
+  function setupEventListeners() {
+    // Theme toggle
+    const themeToggle = document.getElementById('theme-toggle');
+    themeToggle.addEventListener('click', toggleTheme);
+
+    // Search functionality
+    const searchInput = document.getElementById('search-input');
+    searchInput.addEventListener('input', debounce(handleSearch, 300));
+
+    // Filter functionality
+    const sourceFilter = document.getElementById('source-filter');
+    const dateFilter = document.getElementById('date-filter');
+    const sortFilter = document.getElementById('sort-filter');
+
+    sourceFilter.addEventListener('change', applyFilters);
+    dateFilter.addEventListener('change', applyFilters);
+    sortFilter.addEventListener('change', applyFilters);
+  }
+
+  /**
+   * Load theme preference from localStorage
+   */
+  function loadThemePreference() {
+    const savedTheme = localStorage.getItem('theme') || 'light';
+    setTheme(savedTheme);
+  }
+
+  /**
+   * Toggle between light and dark themes
+   */
+  function toggleTheme() {
+    const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+    setTheme(newTheme);
+  }
+
+  /**
+   * Set the theme and update UI
+   */
+  function setTheme(theme) {
+    currentTheme = theme;
+    document.body.setAttribute('data-theme', theme);
+    localStorage.setItem('theme', theme);
+    
+    const themeIcon = document.querySelector('#theme-toggle i');
+    themeIcon.className = theme === 'light' ? 'fas fa-moon' : 'fas fa-sun';
+  }
+
+  /**
+   * Debounce function to limit API calls
+   */
+  function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+      const later = () => {
+        clearTimeout(timeout);
+        func(...args);
+      };
+      clearTimeout(timeout);
+      timeout = setTimeout(later, wait);
+    };
+  }
+
+  /**
+   * Calls the server-side Google Apps Script function to get news data.
+   */
+  function fetchNews() {
+    showLoader();
+    google.script.run
+      .withSuccessHandler(handleNewsSuccess)
+      .withFailureHandler(handleNewsError)
+      .getNewsData();
+  }
+
+  /**
+   * Handle successful news data retrieval
+   */
+  function handleNewsSuccess(articles) {
+    hideLoader();
+    
+    if (articles.error) {
+      displayError({ message: articles.error });
+      return;
+    }
+
+    if (!articles || articles.length === 0) {
+      showEmptyState();
+      return;
+    }
+
+    allArticles = articles;
+    populateSourceFilter();
+    applyFilters();
+    updateLastUpdated();
+  }
+
+  /**
+   * Handle news data retrieval error
+   */
+  function handleNewsError(error) {
+    hideLoader();
+    displayError(error);
+  }
+
+  /**
+   * Handle search input
+   */
+  function handleSearch(event) {
+    applyFilters();
+  }
+
+  /**
+   * Populate source filter dropdown with unique sources
+   */
+  function populateSourceFilter() {
+    const sourceFilter = document.getElementById('source-filter');
+    const sources = [...new Set(allArticles.map(article => article.source))].filter(Boolean);
+    
+    // Clear existing options except "All Sources"
+    sourceFilter.innerHTML = '<option value="">All Sources</option>';
+    
+    sources.forEach(source => {
+      const option = document.createElement('option');
+      option.value = source;
+      option.textContent = source;
+      sourceFilter.appendChild(option);
+    });
+  }
+
+  /**
+   * Apply all filters and sorting
+   */
+  function applyFilters() {
+    const searchTerm = document.getElementById('search-input').value.toLowerCase();
+    const sourceFilter = document.getElementById('source-filter').value;
+    const dateFilter = document.getElementById('date-filter').value;
+    const sortFilter = document.getElementById('sort-filter').value;
+
+    // Start with all articles
+    filteredArticles = [...allArticles];
+
+    // Apply search filter
+    if (searchTerm) {
+      filteredArticles = filteredArticles.filter(article => 
+        article.title?.toLowerCase().includes(searchTerm) ||
+        article.summary?.toLowerCase().includes(searchTerm) ||
+        article.content?.toLowerCase().includes(searchTerm)
+      );
+    }
+
+    // Apply source filter
+    if (sourceFilter) {
+      filteredArticles = filteredArticles.filter(article => article.source === sourceFilter);
+    }
+
+    // Apply date filter
+    if (dateFilter) {
+      const now = new Date();
+      const filterDate = getFilterDate(dateFilter, now);
+      
+      filteredArticles = filteredArticles.filter(article => {
+        const articleDate = new Date(article.discovered_at);
+        return articleDate >= filterDate;
+      });
+    }
+
+    // Apply sorting
+    applySorting(sortFilter);
+
+    // Display filtered results
+    displayFilteredNews();
+  }
+
+  /**
+   * Get filter date based on selection
+   */
+  function getFilterDate(filter, now) {
+    switch (filter) {
+      case 'today':
+        return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      case 'yesterday':
+        const yesterday = new Date(now);
+        yesterday.setDate(yesterday.getDate() - 1);
+        return new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate());
+      case 'week':
+        const weekAgo = new Date(now);
+        weekAgo.setDate(weekAgo.getDate() - 7);
+        return weekAgo;
+      case 'month':
+        const monthAgo = new Date(now);
+        monthAgo.setMonth(monthAgo.getMonth() - 1);
+        return monthAgo;
+      default:
+        return new Date(0); // Beginning of time
+    }
+  }
+
+  /**
+   * Apply sorting to filtered articles
+   */
+  function applySorting(sortType) {
+    switch (sortType) {
+      case 'date-desc':
+        filteredArticles.sort((a, b) => new Date(b.discovered_at) - new Date(a.discovered_at));
+        break;
+      case 'date-asc':
+        filteredArticles.sort((a, b) => new Date(a.discovered_at) - new Date(b.discovered_at));
+        break;
+      case 'source':
+        filteredArticles.sort((a, b) => (a.source || '').localeCompare(b.source || ''));
+        break;
+      case 'relevance':
+      default:
+        filteredArticles.sort((a, b) => (b.relevance_score || 0) - (a.relevance_score || 0));
+        break;
+    }
+  }
+
+  /**
+   * Display filtered news articles
+   */
+  function displayFilteredNews() {
+    const container = document.getElementById('news-container');
+    
+    if (filteredArticles.length === 0) {
+      showEmptyState();
+      return;
+    }
+
+    hideEmptyState();
+    hideErrorState();
+
+    let cardsHtml = '';
+    filteredArticles.forEach(article => {
+      cardsHtml += createCard(article);
+    });
+
+    container.innerHTML = cardsHtml;
+  }
+
+  /**
+   * Creates the HTML for a single news card with enhanced features
+   */
+  function createCard(article) {
+    const discoveredDate = new Date(article.discovered_at).toLocaleDateString();
+    const relevanceScore = Math.round((article.relevance_score || 0) * 100);
+    const aiSnippet = article.ai_snippet || '';
+    
+    return `
+      <article class="card" role="article" tabindex="0">
+        <div class="card-header">
+          ${relevanceScore > 0 ? `<div class="card-relevance" title="Relevance Score">${relevanceScore}%</div>` : ''}
+        </div>
+        
+        <div class="card-content">
+          <h2><a href="${article.url}" target="_blank" rel="noopener noreferrer">${article.title}</a></h2>
+          
+          ${aiSnippet ? `<div class="card-ai-snippet" title="AI-generated relevance insight">${aiSnippet}</div>` : ''}
+          
+          <div class="card-summary">${article.summary || 'No summary available.'}</div>
+          
+          <div class="card-actions">
+            <button class="card-action-btn" onclick="saveArticle('${article.article_id || article.resource_id}')" title="Save article">
+              <i class="fas fa-bookmark" aria-hidden="true"></i> Save
+            </button>
+            <button class="card-action-btn" onclick="shareArticle('${article.url}')" title="Share article">
+              <i class="fas fa-share" aria-hidden="true"></i> Share
+            </button>
+            <button class="card-action-btn" onclick="discussArticle('${article.article_id || article.resource_id}')" title="Discuss with AI">
+              <i class="fas fa-comments" aria-hidden="true"></i> Discuss
+            </button>
+          </div>
+        </div>
+        
+        <div class="card-footer">
+          <div class="card-meta">
+            <span class="card-source">${article.source}</span>
+            <span class="card-date">${discoveredDate}</span>
+          </div>
+        </div>
+      </article>
+    `;
+  }
+
+  /**
+   * Show loading state
+   */
+  function showLoader() {
+    const loader = document.getElementById('loader');
+    const container = document.getElementById('news-container');
+    
+    hideEmptyState();
+    hideErrorState();
+    
+    container.innerHTML = '';
+    loader.style.display = 'flex';
+  }
+
+  /**
+   * Hide loading state
+   */
+  function hideLoader() {
+    const loader = document.getElementById('loader');
+    loader.style.display = 'none';
+  }
+
+  /**
+   * Show empty state
+   */
+  function showEmptyState() {
+    const emptyState = document.getElementById('empty-state');
+    const container = document.getElementById('news-container');
+    
+    container.innerHTML = '';
+    emptyState.style.display = 'block';
+  }
+
+  /**
+   * Hide empty state
+   */
+  function hideEmptyState() {
+    const emptyState = document.getElementById('empty-state');
+    emptyState.style.display = 'none';
+  }
+
+  /**
+   * Display error state
+   */
+  function displayError(error) {
+    const errorState = document.getElementById('error-state');
+    const errorMessage = document.getElementById('error-message');
+    const container = document.getElementById('news-container');
+    
+    container.innerHTML = '';
+    hideEmptyState();
+    
+    errorMessage.textContent = error.message || 'An unexpected error occurred.';
+    errorState.style.display = 'block';
+  }
+
+  /**
+   * Hide error state
+   */
+  function hideErrorState() {
+    const errorState = document.getElementById('error-state');
+    errorState.style.display = 'none';
+  }
+
+  /**
+   * Update last updated timestamp
+   */
+  function updateLastUpdated() {
+    const lastUpdatedElement = document.getElementById('last-updated');
+    if (lastUpdatedElement) {
+      const now = new Date();
+      lastUpdatedElement.textContent = `Last updated: ${now.toLocaleString()}`;
+    }
+  }
+
+  // Article action functions (placeholders for future implementation)
+  
+  /**
+   * Save article for later reading
+   */
+  function saveArticle(articleId) {
+    // TODO: Implement save functionality
+    console.log('Saving article:', articleId);
+    // Could integrate with Google Apps Script to save to user's saved articles
+  }
+
+  /**
+   * Share article
+   */
+  function shareArticle(url) {
+    if (navigator.share) {
+      navigator.share({
+        title: 'Check out this article',
+        url: url
+      });
+    } else {
+      // Fallback: copy to clipboard
+      navigator.clipboard.writeText(url).then(() => {
+        alert('Article URL copied to clipboard!');
+      });
+    }
+  }
+
+  /**
+   * Start AI discussion about article
+   */
+  function discussArticle(articleId) {
+    // TODO: Implement AI chat functionality
+    console.log('Starting discussion for article:', articleId);
+    // This would open a chat interface or modal for AI discussion
+  }
+
+</script>

@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <base target="_top">
+    <title>Singapore News Intelligence Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="AI-powered Singapore news dashboard with personalized insights">
+    <meta name="theme-color" content="#4285F4">
+    <?!= include('Stylesheet'); ?>
+  </head>
+  <body data-theme="light">
+    <div class="container">
+      <header>
+        <h1>Singapore News Intelligence Dashboard</h1>
+        <p>Your personalized AI-powered news companion</p>
+      </header>
+      
+      <!-- Controls Section -->
+      <section class="controls" role="toolbar" aria-label="News controls">
+        <div class="controls-left">
+          <div class="search-box">
+            <i class="fas fa-search search-icon" aria-hidden="true"></i>
+            <input 
+              type="text" 
+              class="search-input" 
+              placeholder="Search articles..." 
+              id="search-input"
+              aria-label="Search articles"
+            >
+          </div>
+          
+          <select class="filter-select" id="source-filter" aria-label="Filter by source">
+            <option value="">All Sources</option>
+          </select>
+          
+          <select class="filter-select" id="date-filter" aria-label="Filter by date">
+            <option value="">All Dates</option>
+            <option value="today">Today</option>
+            <option value="yesterday">Yesterday</option>
+            <option value="week">This Week</option>
+            <option value="month">This Month</option>
+          </select>
+          
+          <select class="filter-select" id="sort-filter" aria-label="Sort articles">
+            <option value="relevance">Sort by Relevance</option>
+            <option value="date-desc">Newest First</option>
+            <option value="date-asc">Oldest First</option>
+            <option value="source">By Source</option>
+          </select>
+        </div>
+        
+        <div class="controls-right">
+          <button 
+            class="theme-toggle" 
+            id="theme-toggle" 
+            aria-label="Toggle dark mode"
+            title="Toggle dark/light theme"
+          >
+            <i class="fas fa-moon" aria-hidden="true"></i>
+          </button>
+        </div>
+      </section>
+
+      <!-- News Container -->
+      <main id="news-container" role="main" aria-label="News articles">
+        <!-- Loading state -->
+        <div class="loader" id="loader" aria-label="Loading articles">
+          <div class="spinner"></div>
+        </div>
+      </main>
+
+      <!-- Empty State (hidden by default) -->
+      <div class="empty-state" id="empty-state" style="display: none;" role="status">
+        <div class="empty-state-icon">
+          <i class="fas fa-newspaper" aria-hidden="true"></i>
+        </div>
+        <h3>No articles found</h3>
+        <p>Try adjusting your search or filter criteria to find more articles.</p>
+      </div>
+
+      <!-- Error State (hidden by default) -->
+      <div class="error-state" id="error-state" style="display: none;" role="alert">
+        <div class="error-state-icon">
+          <i class="fas fa-exclamation-triangle" aria-hidden="true"></i>
+        </div>
+        <h3>Unable to load articles</h3>
+        <p id="error-message">Please try refreshing the page or contact support if the problem persists.</p>
+      </div>
+
+      <footer>
+        <p>Powered by Google Apps Script & Gemini AI • <span id="last-updated"></span></p>
+      </footer>
+    </div>
+
+    <?!= include('JavaScript'); ?>
+  </body>
+</html>

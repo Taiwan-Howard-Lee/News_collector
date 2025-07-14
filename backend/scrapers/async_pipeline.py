@@ -5,17 +5,15 @@ import uuid
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 
-from backend.database.google_sheets_handler import get_gspread_client, insert_article, insert_log
 from backend.scrapers.sites.channelnewsasia.discoverer import discover_links as cna_discoverer
-from backend.scrapers.article_extractor import extract_article_content
-from backend.database.google_sheets_handler import GOOGLE_SHEET_ID
+from backend.scrapers.resource_extractor import extract_resource_content
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-async def scrape_and_prepare_article(url: str):
+async def scrape_and_prepare_resource(url: str):
     """
-    Asynchronously scrapes a single URL and prepares the article data dictionary.
+    Asynchronously scrapes a single URL and prepares the resource data dictionary.
     Does not insert into the database.
     """
     logging.info(f"Scraping: {url}")
@@ -23,25 +21,25 @@ async def scrape_and_prepare_article(url: str):
     
     try:
         # Run synchronous extraction in a thread pool executor
-        article_content = await loop.run_in_executor(
+        resource_content = await loop.run_in_executor(
             None,  # Uses the default executor
-            extract_article_content,
+            extract_resource_content,
             url
         )
 
-        if article_content and article_content.get('text'):
-            article_data = {
-                'article_id': f"cna_{uuid.uuid4()}",
+        if resource_content and resource_content.get('text'):
+            resource_data = {
+                'resource_id': f"cna_{uuid.uuid4()}",
                 'source': 'Channel NewsAsia',
                 'url': url,
                 'discovered_at': datetime.utcnow().isoformat(),
-                'title': article_content.get('title'),
-                'content': article_content.get('text'),
+                'title': resource_content.get('title'),
+                'content': resource_content.get('text'),
                 'summary': 'N/A',
-                'status': 'processed'
+                'status': 'active'
             }
-            logging.info(f"Successfully scraped: {article_content.get('title')}")
-            return article_data
+            logging.info(f"Successfully scraped: {resource_content.get('title')}")
+            return resource_data
         else:
             logging.warning(f"Could not extract content from: {url}")
             return None
@@ -56,22 +54,7 @@ async def run_async_pipeline(max_workers: int):
     start_time = time.time()
     logging.info(f"Starting asynchronous pipeline with {max_workers} workers...")
 
-    g_client = get_gspread_client()
-    if not g_client:
-        logging.error("Pipeline failed: Could not connect to Google Sheets API.")
-        return
-
-    # Fetch existing URLs to avoid duplicates
-    existing_urls = set()
-    try:
-        articles_sheet = g_client.open_by_key(GOOGLE_SHEET_ID).worksheet('Articles')
-        urls_in_sheet = articles_sheet.col_values(3) # URL is in the 3rd column
-        existing_urls.update(urls_in_sheet)
-        logging.info(f"Found {len(existing_urls)} existing URLs.")
-    except Exception as e:
-        logging.warning(f"Could not fetch existing URLs: {e}")
-
-    # Discover links from multiple categories
+    # Discover links from multiple categories (example, should be modularized)
     source_urls = [
         'https://www.channelnewsasia.com/singapore',
         'https://www.channelnewsasia.com/business',
@@ -84,11 +67,11 @@ async def run_async_pipeline(max_workers: int):
         discovered = cna_discoverer(url)
         all_discovered_links.update(discovered)
     
-    new_links = [link for link in all_discovered_links if link not in existing_urls]
-    logging.info(f"Discovered {len(new_links)} new articles to process.")
+    new_links = list(all_discovered_links)
+    logging.info(f"Discovered {len(new_links)} new resources to process.")
 
     if not new_links:
-        logging.info("No new articles to process. Pipeline finished.")
+        logging.info("No new resources to process. Pipeline finished.")
         return
 
     # Set up the thread pool executor
@@ -96,55 +79,23 @@ async def run_async_pipeline(max_workers: int):
     loop.set_default_executor(ThreadPoolExecutor(max_workers=max_workers))
 
     # Stage 1: Concurrently scrape all new links
-    logging.info("--- Stage 1: Scraping all new articles ---")
-    tasks = [scrape_and_prepare_article(link) for link in new_links]
-    scraped_articles = await asyncio.gather(*tasks)
+    logging.info("--- Stage 1: Scraping all new resources ---")
+    tasks = [scrape_and_prepare_resource(link) for link in new_links]
+    scraped_resources = await asyncio.gather(*tasks)
     
     # Filter out failed scrapes
-    valid_articles = [article for article in scraped_articles if article is not None]
+    valid_resources = [resource for resource in scraped_resources if resource is not None]
     
-    articles_processed = len(valid_articles)
-    if articles_processed == 0:
-        logging.info("No new articles were successfully scraped. Pipeline finished.")
+    resources_processed = len(valid_resources)
+    if resources_processed == 0:
+        logging.info("No new resources were successfully scraped. Pipeline finished.")
         return
 
     scraping_duration = time.time() - start_time
-    logging.info(f"--- Stage 1 finished in {scraping_duration:.2f} seconds. Scraped {articles_processed} articles. ---")
+    logging.info(f"--- Stage 1 finished in {scraping_duration:.2f} seconds. Scraped {resources_processed} resources. ---")
 
-    # Stage 2: Batch insert into Google Sheets
-    logging.info("--- Stage 2: Batch inserting articles into Google Sheets ---")
-    try:
-        articles_sheet = g_client.open_by_key(GOOGLE_SHEET_ID).worksheet('Articles')
-        
-        # Prepare rows for batch update
-        rows_to_insert = [
-            [
-                article['article_id'],
-                article['source'],
-                article['url'],
-                article['discovered_at'],
-                article['title'],
-                article['content'],
-                article['summary'],
-                article['status']
-            ] for article in valid_articles
-        ]
-        
-        articles_sheet.append_rows(rows_to_insert, value_input_option='USER_ENTERED')
-        logging.info(f"Successfully inserted {articles_processed} articles into the spreadsheet.")
-
-    except Exception as e:
-        logging.error(f"Failed to batch insert articles: {e}")
-        return
+    # TODO: Insert valid_resources into the PostgreSQL database here
+    # (This should be implemented in the next step)
 
     total_duration = time.time() - start_time
-    logging.info(f"--- Stage 2 finished. Total pipeline duration: {total_duration:.2f} seconds. ---")
-
-    # Log the completion of the run
-    log_data = {
-        'timestamp': datetime.utcnow().isoformat(),
-        'level': 'INFO',
-        'event': 'AsyncPipelineFinished',
-        'details': f'Processed {articles_processed} articles in {total_duration:.2f}s with {max_workers} workers.'
-    }
-    insert_log(g_client, log_data)
+    logging.info(f"--- Pipeline finished. Total duration: {total_duration:.2f} seconds. ---")

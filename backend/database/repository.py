@@ -4,40 +4,40 @@ from typing import List, Optional, Dict, Any
 from datetime import datetime, timedelta
 import logging
 
-from backend.models.article import Article
+from backend.models.resource import Resource
 from backend.models.user import User
 
 logger = logging.getLogger(__name__)
 
-class ArticleRepository:
-    """Repository for article database operations."""
+class ResourceRepository:
+    """Repository for resource database operations."""
     
     def __init__(self, db: Session):
         self.db = db
     
-    def create_article(self, article_data: Dict[str, Any]) -> Article:
-        """Create a new article."""
+    def create_resource(self, resource_data: Dict[str, Any]) -> Resource:
+        """Create a new resource."""
         try:
-            article = Article(**article_data)
-            self.db.add(article)
+            resource = Resource(**resource_data)
+            self.db.add(resource)
             self.db.commit()
-            self.db.refresh(article)
-            logger.info(f"Created article: {article.title}")
-            return article
+            self.db.refresh(resource)
+            logger.info(f"Created resource: {resource.title}")
+            return resource
         except Exception as e:
             self.db.rollback()
-            logger.error(f"Error creating article: {e}")
+            logger.error(f"Error creating resource: {e}")
             raise
     
-    def get_article_by_id(self, article_id: int) -> Optional[Article]:
-        """Get article by ID."""
-        return self.db.query(Article).filter(Article.id == article_id).first()
+    def get_resource_by_id(self, resource_id: int) -> Optional[Resource]:
+        """Get resource by ID."""
+        return self.db.query(Resource).filter(Resource.id == resource_id).first()
     
-    def get_article_by_url(self, url: str) -> Optional[Article]:
-        """Get article by URL."""
-        return self.db.query(Article).filter(Article.url == url).first()
+    def get_resource_by_url(self, url: str) -> Optional[Resource]:
+        """Get resource by URL."""
+        return self.db.query(Resource).filter(Resource.url == url).first()
     
-    def get_articles(
+    def get_resources(
         self,
         limit: int = 50,
         offset: int = 0,
@@ -45,115 +45,113 @@ class ArticleRepository:
         category: Optional[str] = None,
         days: int = 7,
         min_relevance: Optional[float] = None
-    ) -> List[Article]:
-        """Get articles with filtering and pagination."""
-        query = self.db.query(Article)
+    ) -> List[Resource]:
+        """Get resources with filtering and pagination."""
+        query = self.db.query(Resource)
         
         # Apply filters
         if source:
-            query = query.filter(Article.source == source)
+            query = query.filter(Resource.source == source)
         
         if category:
-            query = query.filter(Article.category == category)
+            query = query.filter(Resource.category == category)
         
         if days:
             cutoff_date = datetime.utcnow() - timedelta(days=days)
-            query = query.filter(Article.discovered_at >= cutoff_date)
+            query = query.filter(Resource.discovered_at >= cutoff_date)
         
         if min_relevance is not None:
-            query = query.filter(Article.relevance_score >= min_relevance)
+            query = query.filter(Resource.relevance_score >= min_relevance)
         
         # Order by relevance and date
-        query = query.order_by(desc(Article.relevance_score), desc(Article.discovered_at))
+        query = query.order_by(desc(Resource.relevance_score), desc(Resource.discovered_at))
         
         # Apply pagination
         query = query.offset(offset).limit(limit)
         
         return query.all()
     
-    def search_articles(self, search_term: str, limit: int = 20) -> List[Article]:
-        """Search articles using PostgreSQL full-text search."""
-        # For PostgreSQL, we can use full-text search
-        # For now, use simple LIKE search
+    def search_resources(self, search_term: str, limit: int = 20) -> List[Resource]:
+        """Search resources using PostgreSQL full-text search."""
         search_pattern = f"%{search_term}%"
-        return self.db.query(Article).filter(
+        return self.db.query(Resource).filter(
             or_(
-                Article.title.ilike(search_pattern),
-                Article.content.ilike(search_pattern),
-                Article.summary.ilike(search_pattern)
+                Resource.title.ilike(search_pattern),
+                Resource.content.ilike(search_pattern),
+                Resource.summary.ilike(search_pattern)
             )
-        ).order_by(desc(Article.relevance_score)).limit(limit).all()
+        ).order_by(desc(Resource.relevance_score)).limit(limit).all()
     
-    def update_article(self, article_id: int, update_data: Dict[str, Any]) -> Optional[Article]:
-        """Update an article."""
+    def update_resource(self, resource_id: int, update_data: Dict[str, Any]) -> Optional[Resource]:
+        """Update a resource."""
         try:
-            article = self.get_article_by_id(article_id)
-            if article:
+            resource = self.get_resource_by_id(resource_id)
+            if resource:
                 for key, value in update_data.items():
-                    setattr(article, key, value)
-                article.updated_at = datetime.utcnow()
+                    setattr(resource, key, value)
+                resource.updated_at = datetime.utcnow()
                 self.db.commit()
-                self.db.refresh(article)
-                logger.info(f"Updated article: {article.title}")
-                return article
+                self.db.refresh(resource)
+                logger.info(f"Updated resource: {resource.title}")
+                return resource
         except Exception as e:
             self.db.rollback()
-            logger.error(f"Error updating article: {e}")
+            logger.error(f"Error updating resource: {e}")
             raise
         return None
     
-    def delete_article(self, article_id: int) -> bool:
-        """Delete an article."""
+    def delete_resource(self, resource_id: int) -> bool:
+        """Delete a resource."""
         try:
-            article = self.get_article_by_id(article_id)
-            if article:
-                self.db.delete(article)
+            resource = self.get_resource_by_id(resource_id)
+            if resource:
+                self.db.delete(resource)
                 self.db.commit()
-                logger.info(f"Deleted article: {article.title}")
+                logger.info(f"Deleted resource: {resource.title}")
                 return True
         except Exception as e:
             self.db.rollback()
-            logger.error(f"Error deleting article: {e}")
+            logger.error(f"Error deleting resource: {e}")
             raise
         return False
     
-    def get_article_stats(self) -> Dict[str, Any]:
-        """Get article statistics."""
+    def get_resource_stats(self) -> Dict[str, Any]:
+        """Get resource statistics."""
         try:
-            total_articles = self.db.query(func.count(Article.id)).scalar()
+            total_resources = self.db.query(func.count(Resource.id)).scalar()
             
             today = datetime.utcnow().date()
-            articles_today = self.db.query(func.count(Article.id)).filter(
-                func.date(Article.discovered_at) == today
+            resources_today = self.db.query(func.count(Resource.id)).filter(
+                func.date(Resource.discovered_at) == today
             ).scalar()
             
             week_ago = datetime.utcnow() - timedelta(days=7)
-            articles_this_week = self.db.query(func.count(Article.id)).filter(
-                Article.discovered_at >= week_ago
+            resources_this_week = self.db.query(func.count(Resource.id)).filter(
+                Resource.discovered_at >= week_ago
             ).scalar()
             
             # Category distribution
             category_stats = self.db.query(
-                Article.category,
-                func.count(Article.id)
-            ).group_by(Article.category).all()
+                Resource.category,
+                func.count(Resource.id)
+            ).group_by(Resource.category).all()
             
             # Source distribution
             source_stats = self.db.query(
-                Article.source,
-                func.count(Article.id)
-            ).group_by(Article.source).all()
+                Resource.source,
+                func.count(Resource.id)
+            ).group_by(Resource.source).all()
             
             return {
-                "total_articles": total_articles,
-                "articles_today": articles_today,
-                "articles_this_week": articles_this_week,
+                "total_resources": total_resources,
+                "resources_today": resources_today,
+                "resources_this_week": resources_this_week,
                 "categories": dict(category_stats),
                 "sources": dict(source_stats),
                 "last_updated": datetime.utcnow().isoformat()
             }
         except Exception as e:
-            logger.error(f"Error getting article stats: {e}")
+            logger.error(f"Error getting resource stats: {e}")
             raise
 
 class UserRepository:
